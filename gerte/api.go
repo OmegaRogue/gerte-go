@@ -273,7 +273,14 @@ func (api *Api) Transmit(target GERTc, source GertAddress, data []byte) (bool, e
 			return false, cmd.Status.ParseError()
 		case StateSent:
 			return true, nil
+		case StateAssigned:
+			return false, fmt.Errorf("invalid status: Assigned")
+		case StateClosed:
+			return false, fmt.Errorf("invalid status: Closed")
+		case StateConnected:
+			return false, fmt.Errorf("invalid status: Connected")
 		}
+
 	}
 	return false, fmt.Errorf("no valid response")
 }
@@ -406,12 +413,12 @@ func PrettyPrint(data []byte) (string, error) {
 		output += "[" + key + "]"
 		break
 	case byte(CommandData):
-		packet, err := makePacket(data[1:])
-		if err != nil {
-			return "", fmt.Errorf("error while parsing packet data: %+v", err)
-		}
+		source := ParseFull(data[1:7])
+		target := Parse(data[7:10])
+		length := data[10]
+		dat := data[11 : 11+length]
 		output += "[DATA]"
-		output += fmt.Sprintf("[%v][%v][%v]", packet.Target.PrintGERTc(), packet.Source.PrintGERTc(), string(packet.Data))
+		output += fmt.Sprintf("[%v][%v][%v][%v]", source.PrintGERTc(), target.PrintAddress(), length, string(dat))
 		break
 	case byte(CommandClose):
 		output += "[CLOSE]"

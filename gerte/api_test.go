@@ -7,14 +7,6 @@ import (
 	"testing"
 )
 
-const (
-	Server   = "server"
-	Client   = "client"
-	Sent     = "sent"
-	Received = "received"
-	Error    = "error"
-)
-
 func TestApi_Register(t *testing.T) {
 	server, client := net.Pipe()
 	var wg sync.WaitGroup
@@ -74,7 +66,7 @@ func TestApi_Register(t *testing.T) {
 		t.Errorf("client errored on startup: %+v", err)
 	}
 	addr, _ := FromString("0000.1999:0123.0456")
-	_, err = api.Register(addr, "test.txt")
+	_, err = api.Register(addr, "test")
 	if err != nil {
 		t.Errorf("client errored on register: %+v", err)
 	}
@@ -101,7 +93,7 @@ func TestApi_Transmit(t *testing.T) {
 			t.Errorf("server errored on pretty print: %+v", err)
 		}
 		t.Logf("server received: %v", p)
-		cmd := []byte{byte(CommandState), byte(StateAssigned)}
+		cmd := []byte{byte(CommandState), byte(StateSent)}
 		p, err = PrettyPrint(cmd)
 		if err != nil {
 			t.Errorf("server errored on pretty print: %+v", err)
@@ -121,7 +113,21 @@ func TestApi_Transmit(t *testing.T) {
 			t.Errorf("server errored on pretty print: %+v", err)
 		}
 		t.Logf("server received: %v", p)
-		// Do some stuff
+
+		cmd = []byte{byte(CommandState), byte(StateClosed)}
+		p, err = PrettyPrint(cmd)
+		if err != nil {
+			t.Errorf("server errored on pretty print: %+v", err)
+		}
+		t.Logf("server sent: %v", p)
+		_, err = server.Write(cmd)
+		if err != nil {
+			t.Errorf("server errored on write: %+v", err)
+		}
+		err = server.Close()
+		if err != nil {
+			t.Errorf("server errored on close: %+v", err)
+		}
 		wg.Done()
 	}()
 
@@ -141,7 +147,6 @@ func TestApi_Transmit(t *testing.T) {
 		t.Errorf("client errored on transmit: %+v", err)
 	}
 
-	// Do some stuff
 	err = api.Shutdown()
 	if err != nil {
 		t.Errorf("client errored on shutdown: %+v", err)
