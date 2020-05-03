@@ -1,4 +1,4 @@
-// Package GERTe provides an api for the GERT system.
+// Package gerte provides an api for the GERT system.
 // More info: https://github.com/GlobalEmpire/GERT
 package gerte
 
@@ -10,70 +10,74 @@ import (
 )
 
 const (
-	// Used by relays to indicate result of a command to a gateway and by gateways to request the state.
+	// CommandState is used by relays to indicate result of a command to a gateway and by gateways to request the state.
 	CommandState GertCommand = 0
-	// Claims an address for this gateway using a key.
+	// CommandRegister claims an address for this gateway using a key.
 	CommandRegister GertCommand = 1
-	// Transmits data from a GERTi address to a GERTc address.
+	// CommandData transmits data from a GERTi address to a GERTc address.
 	CommandData GertCommand = 2
-	// Gracefully closes a connection to a relay.
+	// CommandClose gracefully closes a connection to a relay.
 	CommandClose GertCommand = 3
 
-	// Initial gateway state.
+	// StateFailure is the initial gateway state.
 	// Should be changed upon negotiation.
 	// Also a response to failed commands with an error
 	StateFailure GertStatus = 0
-	// Gateway is connected to a relay, no other action has been taken
+	// StateConnected indicates that the Gateway is connected to a relay, no other action has been taken
 	StateConnected GertStatus = 1
-	// Gateway has successfully claimed an address.
+	// StateAssigned indicates that the Gateway has successfully claimed an address.
 	// Used as a response to the REGISTER command.
 	StateAssigned GertStatus = 2
-	// Gateway has closed the connection.
+	// StateClosed indicates that the Gateway has closed the connection.
 	// Used as a response to the CLOSE command.
 	StateClosed GertStatus = 3
-	// Data has been successfully sent.
+	// StateSent indicates that the Data has been successfully sent.
 	// Used as a response to the DATA command.
 	// This is not a guarantee for data that has to be sent to another peer, although it's unlikely to be incorrect.
 	StateSent GertStatus = 4
 
-	// Incompatible version during negotiation.
+	// ErrorVersion indicates that an incompatible version was used during negotiation.
 	ErrorVersion GertError = 0
-	// Key did not match that used for the requested address.
+	// ErrorBadKey indicates that the Key did not match that used for the requested address.
 	// Requested address may not exist
 	ErrorBadKey GertError = 1
-	// Registration has already been performed successfully
+	// ErrorAlreadyRegistered indicates that Registration has already been performed successfully
 	ErrorAlreadyRegistered GertError = 2
-	// Gateway cannot send data before claiming an address
+	// ErrorNotRegistered indicates that the Gateway hasn't been registered yet.
+	// The gateway cannot send data before claiming an address
 	ErrorNotRegistered GertError = 3
-	// Data failed to send because remote gateway could not be found
+	// ErrorNoRoute indicates that Data failed to send because the remote gateway couldn't be found
 	ErrorNoRoute GertError = 4
-	// Address request has already been claimed
+	// ErrorAddressTaken indicates that the Address request has already been claimed
 	ErrorAddressTaken GertError = 5
 )
 
 type (
+	// GertStatus indicates the Status from a Status Command
 	GertStatus byte
 
+	// GertCommand indicates the Command of a Request
 	GertCommand byte
 
+	// GertError is the Error Code in a "Failed" Status
 	GertError byte
 )
 
-// GERT addresses consist of 3 or 6 bytes depending on the usage.
-// GERTe/i is 3 bytes while GERTc is 6 bytes.
-// GEDS never parses GERTi addresses, however it will parse and enforce GERTe addresses.
 type (
+	// GertAddress is a 3 byte address used as a GERTe/i Address
 	GertAddress struct {
 		Upper int
 		Lower int
 	}
 
+	// GERTc is a 6 byte GERTc Address
 	GERTc struct {
 		GERTe GertAddress
 		GERTi GertAddress
 	}
 )
 
+// Api is used to perform GERTe API Operations
 type Api struct {
 	socket     net.Conn
 	listener   net.Listener
@@ -83,18 +87,21 @@ type Api struct {
 }
 
 type (
+	// Command is the Parsed Data returned from Api.Parse
 	Command struct {
 		Command GertCommand
 		Packet  Packet
 		Status  Status
 	}
 
+	// Packet is the Parsed Data returned from Api.Parse for a Data Command
 	Packet struct {
 		Source GERTc
 		Target GERTc
 		Data   []byte
 	}
 
+	// Status is the Parsed Status returned from Api.Parse for a Status Command
 	Status struct {
 		Status  GertStatus
 		Size    byte
@@ -102,6 +109,7 @@ type (
 		Version Version
 	}
 
+	// Version is the Version used by the Connected Status
 	Version struct {
 		Major byte
 		Minor byte
