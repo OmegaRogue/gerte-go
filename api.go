@@ -1,5 +1,5 @@
-// Package GERTe provides an api for the GERT system
-// more info: https://github.com/GlobalEmpire/GERT
+// Package GERTe provides an api for the GERT system.
+// More info: https://github.com/GlobalEmpire/GERT
 package gerte
 
 import (
@@ -79,6 +79,7 @@ type Api struct {
 	listener   net.Listener
 	Registered bool
 	Address    GertAddress
+	Version    Version
 }
 
 type (
@@ -96,15 +97,15 @@ type (
 
 	Status struct {
 		Status  GertStatus
-		Size    int
+		Size    byte
 		Error   GertError
 		Version Version
 	}
 
 	Version struct {
-		Major int
-		Minor int
-		Patch int
+		Major byte
+		Minor byte
+		Patch byte
 	}
 )
 
@@ -153,13 +154,6 @@ func (addr GertAddress) toBytes() []byte {
 	return []byte(b.String())
 }
 
-func addressFromBytes(data []byte) GertAddress {
-	return GertAddress{
-		Upper: (int(data[0]) << 4) | (int(data[1]) >> 4),
-		Lower: ((int(data[1]) & 0x0F) << 8) | int(data[2]),
-	}
-}
-
 func gertCFromBytes(data []byte) GERTc {
 	return GERTc{
 		GERTe: GertAddress{
@@ -172,16 +166,6 @@ func gertCFromBytes(data []byte) GERTc {
 		},
 	}
 
-}
-
-func (ver Version) printVersion() string {
-	return fmt.Sprintf("%v.%v.%v", ver.Major, ver.Minor, ver.Patch)
-}
-func (addr GertAddress) printAddress() string {
-	return fmt.Sprintf("%v.%v", addr.Upper, addr.Lower)
-}
-func (addr GERTc) printGERTc() string {
-	return fmt.Sprintf("%v.%v:%v.%v", addr.GERTe.Upper, addr.GERTe.Lower, addr.GERTi.Upper, addr.GERTi.Lower)
 }
 
 func makePacket(data []byte) (Packet, error) {
@@ -220,9 +204,9 @@ func makeStatus(data []byte) (Status, error) {
 			Status: StateConnected,
 			Size:   4,
 			Version: Version{
-				Major: int(data[1]),
-				Minor: int(data[2]),
-				Patch: int(data[3]),
+				Major: data[1],
+				Minor: data[2],
+				Patch: data[3],
 			},
 		}, nil
 	case byte(StateAssigned):
@@ -250,11 +234,18 @@ func makeStatus(data []byte) (Status, error) {
 // The API should be initialized for every program when it decides to use it (although it is potentially already initialized, the API will ensure it's safe to initialize.)
 func (api *Api) Startup(c net.Conn) error {
 	if api.socket != nil {
+		return fmt.Errorf("socket already open")
+	}
+	api.socket = c
+	cmd, err := api.Parse()
+	if err != nil {
+		return fmt.Errorf("error on parse response: %+v", err)
+	}
+	if cmd.Command == CommandState && cmd.Status.Status == StateConnected {
+		api.Version = cmd.Status.Version
 		return nil
 	}
-
-	api.socket = c
-	return nil
+	return fmt.Errorf("invalid response")
 }
 
 // Register registers the GERTe client on the GERTe address with the associated 20 byte key.
@@ -414,78 +405,4 @@ func (api *Api) Parse() (Command, error) {
 		}, nil
 	}
 	return Command{}, fmt.Errorf("no valid command: %v", data[0])
-}
-
-// PrettyPrint returns a GERTe Message in a Human readable string.
-// Mainly for testing purposes
-func PrettyPrint(data []byte) (string, error) {
-	output := ""
-	switch data[0] {
-	case byte(CommandState):
-		state, err := makeStatus(data[1:])
-		if err != nil {
-			return "", fmt.Errorf("error while parsing status data: %+v", err)
-		}
-		output += "[STATE]"
-		switch state.Status {
-		case StateFailure:
-			output += "[FAILURE]"
-			switch state.Error {
-			case ErrorVersion:
-				output += "[VERSION]"
-				break
-			case ErrorBadKey:
-				output += "[BAD_KEY]"
-				break
-			case ErrorAlreadyRegistered:
-				output += "[ALREADY_REGISTERED]"
-				break
-			case ErrorNotRegistered:
-				output += "[NOT_REGISTERED]"
-				break
-			case ErrorNoRoute:
-				output += "[NO_ROUTE]"
-				break
-			case ErrorAddressTaken:
-				output += "[ADDRESS_TAKEN]"
-				break
-			}
-			break
-		case StateConnected:
-			output += "[CONNECTED]"
-			output += "[" + state.Version.printVersion() + "]"
-			break
-		case StateAssigned:
-			output += "[ASSIGNED]"
-			break
-		case StateClosed:
-			output += "[CLOSED]"
-			break
-		case StateSent:
-			output += "[SENT]"
-			break
-		}
-		break
-	case byte(CommandRegister):
-		output += "[REGISTER]"
-		addr := addressFromBytes(data[1:4])
-		output += "[" + addr.printAddress() + "]"
-		key := string(data[4:24])
-		output += "[" + key + "]"
-		break
-	case byte(CommandData):
-		source := gertCFromBytes(data[1:7])
-		target := addressFromBytes(data[7:10])
-		length := data[10]
-		dat := data[11 : 11+length]
-		output += "[DATA]"
-		output += fmt.Sprintf("[%v][%v][%v][%v]", source.printGERTc(), target.printAddress(), length, string(dat))
-		break
-	case byte(CommandClose):
-		output += "[CLOSE]"
-		break
-	default:
-		return "", fmt.Errorf("no valid command: %v", data[0])
-	}
-	return output, nil
 }
