@@ -1,6 +1,6 @@
 // Package GERTe provides an api for the GERT system
 // more info: https://github.com/GlobalEmpire/GERT
-package GERTe
+package gerte
 
 import (
 	"fmt"

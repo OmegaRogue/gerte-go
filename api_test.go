@@ -1,4 +1,4 @@
-package GERTe
+package gerte
 
 import (
 	"bufio"
