@@ -1,4 +1,6 @@
-package gerte
+// Package GERTe provides an api for the GERT system
+// more info: https://github.com/GlobalEmpire/GERT
+package GERTe
 
 import (
 	"fmt"
@@ -7,46 +9,70 @@ import (
 	"strings"
 )
 
-type GertStatus byte
-type GertCommand byte
-type GertError byte
-
 const (
-	CommandState    GertCommand = 0
+	// Used by relays to indicate result of a command to a gateway and by gateways to request the state.
+	CommandState GertCommand = 0
+	// Claims an address for this gateway using a key.
 	CommandRegister GertCommand = 1
-	CommandData     GertCommand = 2
-	CommandClose    GertCommand = 3
+	// Transmits data from a GERTi address to a GERTc address.
+	CommandData GertCommand = 2
+	// Gracefully closes a connection to a relay.
+	CommandClose GertCommand = 3
 
-	StateFailure   GertStatus = 0
+	// Initial gateway state.
+	// Should be changed upon negotiation.
+	// Also a response to failed commands with an error
+	StateFailure GertStatus = 0
+	// Gateway is connected to a relay, no other action has been taken
 	StateConnected GertStatus = 1
-	StateAssigned  GertStatus = 2
-	StateClosed    GertStatus = 3
-	StateSent      GertStatus = 4
+	// Gateway has successfully claimed an address.
+	// Used as a response to the REGISTER command.
+	StateAssigned GertStatus = 2
+	// Gateway has closed the connection.
+	// Used as a response to the CLOSE command.
+	StateClosed GertStatus = 3
+	// Data has been successfully sent.
+	// Used as a response to the DATA command.
+	// This is not a guarantee for data that has to be sent to another peer, although it's unlikely to be incorrect.
+	StateSent GertStatus = 4
 
-	ErrorVersion           GertError = 0
-	ErrorBadKey            GertError = 1
+	// Incompatible version during negotiation.
+	ErrorVersion GertError = 0
+	// Key did not match that used for the requested address.
+	// Requested address may not exist
+	ErrorBadKey GertError = 1
+	// Registration has already been performed successfully
 	ErrorAlreadyRegistered GertError = 2
-	ErrorNotRegistered     GertError = 3
-	ErrorNoRoute           GertError = 4
-	ErrorAddressTaken      GertError = 5
+	// Gateway cannot send data before claiming an address
+	ErrorNotRegistered GertError = 3
+	// Data failed to send because remote gateway could not be found
+	ErrorNoRoute GertError = 4
+	// Address request has already been claimed
+	ErrorAddressTaken GertError = 5
 )
 
-type GertAddress struct {
-	Upper int
-	Lower int
-}
-type GERTc struct {
-	GERTe GertAddress
-	GERTi GertAddress
-}
+type (
+	GertStatus byte
 
-type ApiConfig struct {
-}
-type Command struct {
-	Command GertCommand
-	Packet  Packet
-	Status  Status
-}
+	GertCommand byte
+
+	GertError byte
+)
+
+// GERT addresses consist of 3 or 6 bytes depending on the usage.
+// GERTe/i is 3 bytes while GERTc is 6 bytes.
+// GEDS never parses GERTi addresses, however it will parse and enforce GERTe addresses.
+type (
+	GertAddress struct {
+		Upper int
+		Lower int
+	}
+
+	GERTc struct {
+		GERTe GertAddress
+		GERTi GertAddress
+	}
+)
 
 type Api struct {
 	socket     net.Conn
@@ -55,24 +81,34 @@ type Api struct {
 	Address    GertAddress
 }
 
-type Packet struct {
-	Source GERTc
-	Target GERTc
-	Data   []byte
-}
-type Status struct {
-	Status  GertStatus
-	Size    int
-	Error   GertError
-	Version Version
-}
-type Version struct {
-	Major int
-	Minor int
-	Patch int
-}
+type (
+	Command struct {
+		Command GertCommand
+		Packet  Packet
+		Status  Status
+	}
 
-func (status Status) ParseError() error {
+	Packet struct {
+		Source GERTc
+		Target GERTc
+		Data   []byte
+	}
+
+	Status struct {
+		Status  GertStatus
+		Size    int
+		Error   GertError
+		Version Version
+	}
+
+	Version struct {
+		Major int
+		Minor int
+		Patch int
+	}
+)
+
+func (status Status) parseError() error {
 	switch status.Error {
 	case ErrorVersion:
 		return fmt.Errorf("incompatible version during negotiation: %v", status.Version)
@@ -90,7 +126,9 @@ func (status Status) ParseError() error {
 	return fmt.Errorf("no valid error")
 }
 
-func FromString(addr string) (GertAddress, error) {
+// AddressFromString converts a string with an address in the format "XXXX.YYYY" into the corresponding GertAddress.
+// It returns the GertAddress and any encountered errors.
+func AddressFromString(addr string) (GertAddress, error) {
 	parts := strings.Split(addr, ".")
 
 	upper, err := strconv.ParseInt(parts[0], 10, 0)
@@ -107,7 +145,7 @@ func FromString(addr string) (GertAddress, error) {
 	}, nil
 }
 
-func (addr GertAddress) Conv() []byte {
+func (addr GertAddress) toBytes() []byte {
 	var b strings.Builder
 	b.WriteByte(byte(addr.Upper >> 4))
 	b.WriteByte(byte(((addr.Upper & 0x0F) << 4) | (addr.Lower >> 8)))
@@ -115,14 +153,14 @@ func (addr GertAddress) Conv() []byte {
 	return []byte(b.String())
 }
 
-func Parse(data []byte) GertAddress {
+func addressFromBytes(data []byte) GertAddress {
 	return GertAddress{
 		Upper: (int(data[0]) << 4) | (int(data[1]) >> 4),
 		Lower: ((int(data[1]) & 0x0F) << 8) | int(data[2]),
 	}
 }
 
-func ParseFull(data []byte) GERTc {
+func gertCFromBytes(data []byte) GERTc {
 	return GERTc{
 		GERTe: GertAddress{
 			Upper: (int(data[0]) << 4) | (int(data[1]) >> 4),
@@ -136,22 +174,23 @@ func ParseFull(data []byte) GERTc {
 
 }
 
-func (ver Version) PrintVersion() string {
+func (ver Version) printVersion() string {
 	return fmt.Sprintf("%v.%v.%v", ver.Major, ver.Minor, ver.Patch)
 }
-func (addr GertAddress) PrintAddress() string {
+func (addr GertAddress) printAddress() string {
 	return fmt.Sprintf("%v.%v", addr.Upper, addr.Lower)
 }
-func (addr GERTc) PrintGERTc() string {
+func (addr GERTc) printGERTc() string {
 	return fmt.Sprintf("%v.%v:%v.%v", addr.GERTe.Upper, addr.GERTe.Lower, addr.GERTi.Upper, addr.GERTi.Lower)
 }
+
 func makePacket(data []byte) (Packet, error) {
 	if len(data) < 13 {
 		return Packet{}, fmt.Errorf("data too short: %v<13", len(data))
 	}
 
-	source := ParseFull(data[:6])
-	target := ParseFull(data[6:12])
+	source := gertCFromBytes(data[:6])
+	target := gertCFromBytes(data[6:12])
 	length := int(data[12])
 
 	if len(data) < 13+length {
@@ -205,6 +244,10 @@ func makeStatus(data []byte) (Status, error) {
 	return Status{}, fmt.Errorf("state didn't match any known state: %v", data[0])
 }
 
+// Startup initializes the API.
+// It returns any encountered errors.
+// Initializing the API is incredibly simple.
+// The API should be initialized for every program when it decides to use it (although it is potentially already initialized, the API will ensure it's safe to initialize.)
 func (api *Api) Startup(c net.Conn) error {
 	if api.socket != nil {
 		return nil
@@ -214,10 +257,14 @@ func (api *Api) Startup(c net.Conn) error {
 	return nil
 }
 
+// Register registers the GERTe client on the GERTe address with the associated 20 byte key.
+// It returns a bool whether the registration was successful and any encountered errors.
+// All gateways must register themselves with a valid GERTe address and key before sending data.
+// The API does not track if it is registered nor what address it has registered, it instead relies on the relay it is connected to.
 func (api *Api) Register(addr GertAddress, key string) (bool, error) {
 	var b strings.Builder
 	b.WriteByte(byte(CommandRegister))
-	rawAddr := addr.Conv()
+	rawAddr := addr.toBytes()
 	b.Write(rawAddr)
 	b.WriteString(key)
 	_, err := api.socket.Write([]byte(b.String()))
@@ -232,7 +279,7 @@ func (api *Api) Register(addr GertAddress, key string) (bool, error) {
 	if cmd.Command == CommandState {
 		switch cmd.Status.Status {
 		case StateFailure:
-			return false, cmd.Status.ParseError()
+			return false, cmd.Status.parseError()
 		case StateAssigned:
 			api.Address = addr
 			return true, nil
@@ -241,6 +288,10 @@ func (api *Api) Register(addr GertAddress, key string) (bool, error) {
 	return false, fmt.Errorf("no valid response")
 }
 
+// Transmit sends data to the target Address.
+// It returns a bool whether the operation was successful and any encountered errors.
+// The official API only allows transmissions from GERTi to GERTi via GERTe.
+// his means that a GERTi address must be provided for each endpoint in a message.
 func (api *Api) Transmit(target GERTc, source GertAddress, data []byte) (bool, error) {
 
 	if api.socket == nil {
@@ -253,9 +304,9 @@ func (api *Api) Transmit(target GERTc, source GertAddress, data []byte) (bool, e
 	var b strings.Builder
 
 	b.WriteByte(byte(CommandData))
-	b.Write(target.GERTe.Conv())
-	b.Write(target.GERTi.Conv())
-	b.Write(source.Conv())
+	b.Write(target.GERTe.toBytes())
+	b.Write(target.GERTi.toBytes())
+	b.Write(source.toBytes())
 	b.WriteByte(byte(len(data)))
 	b.Write(data)
 
@@ -270,7 +321,7 @@ func (api *Api) Transmit(target GERTc, source GertAddress, data []byte) (bool, e
 	if cmd.Command == CommandState {
 		switch cmd.Status.Status {
 		case StateFailure:
-			return false, cmd.Status.ParseError()
+			return false, cmd.Status.parseError()
 		case StateSent:
 			return true, nil
 		case StateAssigned:
@@ -285,6 +336,9 @@ func (api *Api) Transmit(target GERTc, source GertAddress, data []byte) (bool, e
 	return false, fmt.Errorf("no valid response")
 }
 
+// Shutdown Gracefully closes the GERTe Socket.
+// It returns any errors encountered.
+// The official API prefers using a safe shutdown procedure, although the GEDS servers should be more than stable enough to survive any number of unclean shutdowns.
 func (api *Api) Shutdown() error {
 	if api.socket != nil {
 		_, err := api.socket.Write([]byte{byte(CommandClose)})
@@ -298,7 +352,7 @@ func (api *Api) Shutdown() error {
 		if cmd.Command == CommandState && cmd.Status.Status == StateClosed {
 			err = api.socket.Close()
 			if err != nil {
-				return fmt.Errorf("error on close socker: %+v", err)
+				return fmt.Errorf("error on close socket: %+v", err)
 			}
 			api.socket = nil
 			return nil
@@ -308,9 +362,14 @@ func (api *Api) Shutdown() error {
 	return fmt.Errorf("socket already closed")
 }
 
+// Parse reads data from the GERTe socket and parses it.
+// It returns the received Command and any errors encountered.
+// The official API only checks the connection for data when requested.
+// This includes connection closures from the relay.
+// If the connection is closed, the API will call the error function instead of returning anything.
 func (api *Api) Parse() (Command, error) {
 	data := make([]byte, 1024)
-	//_, err := bufio.NewReader(api.socket).Read(data)
+	// _, err := bufio.NewReader(api.socket).Read(data)
 	_, err := api.socket.Read(data)
 	if err != nil {
 		return Command{}, fmt.Errorf("error on read data: %+v", err)
@@ -357,6 +416,8 @@ func (api *Api) Parse() (Command, error) {
 	return Command{}, fmt.Errorf("no valid command: %v", data[0])
 }
 
+// PrettyPrint returns a GERTe Message in a Human readable string.
+// Mainly for testing purposes
 func PrettyPrint(data []byte) (string, error) {
 	output := ""
 	switch data[0] {
@@ -392,7 +453,7 @@ func PrettyPrint(data []byte) (string, error) {
 			break
 		case StateConnected:
 			output += "[CONNECTED]"
-			output += "[" + state.Version.PrintVersion() + "]"
+			output += "[" + state.Version.printVersion() + "]"
 			break
 		case StateAssigned:
 			output += "[ASSIGNED]"
@@ -407,18 +468,18 @@ func PrettyPrint(data []byte) (string, error) {
 		break
 	case byte(CommandRegister):
 		output += "[REGISTER]"
-		addr := Parse(data[1:4])
-		output += "[" + addr.PrintAddress() + "]"
+		addr := addressFromBytes(data[1:4])
+		output += "[" + addr.printAddress() + "]"
 		key := string(data[4:24])
 		output += "[" + key + "]"
 		break
 	case byte(CommandData):
-		source := ParseFull(data[1:7])
-		target := Parse(data[7:10])
+		source := gertCFromBytes(data[1:7])
+		target := addressFromBytes(data[7:10])
 		length := data[10]
 		dat := data[11 : 11+length]
 		output += "[DATA]"
-		output += fmt.Sprintf("[%v][%v][%v][%v]", source.PrintGERTc(), target.PrintAddress(), length, string(dat))
+		output += fmt.Sprintf("[%v][%v][%v][%v]", source.printGERTc(), target.printAddress(), length, string(dat))
 		break
 	case byte(CommandClose):
 		output += "[CLOSE]"
