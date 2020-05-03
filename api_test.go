@@ -308,6 +308,7 @@ func (command Command) printCommand() (string, error) {
 	return output, nil
 }
 
+// ...
 func prettyPrint(data []byte) (string, error) {
 	output := ""
 	switch data[0] {
@@ -316,45 +317,11 @@ func prettyPrint(data []byte) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("error while parsing status data: %+v", err)
 		}
-		output += "[STATE]"
-		switch state.Status {
-		case StateFailure:
-			output += "[FAILURE]"
-			switch state.Error {
-			case ErrorVersion:
-				output += "[VERSION]"
-				break
-			case ErrorBadKey:
-				output += "[BAD_KEY]"
-				break
-			case ErrorAlreadyRegistered:
-				output += "[ALREADY_REGISTERED]"
-				break
-			case ErrorNotRegistered:
-				output += "[NOT_REGISTERED]"
-				break
-			case ErrorNoRoute:
-				output += "[NO_ROUTE]"
-				break
-			case ErrorAddressTaken:
-				output += "[ADDRESS_TAKEN]"
-				break
-			}
-			break
-		case StateConnected:
-			output += "[CONNECTED]"
-			output += "[" + state.Version.printVersion() + "]"
-			break
-		case StateAssigned:
-			output += "[ASSIGNED]"
-			break
-		case StateClosed:
-			output += "[CLOSED]"
-			break
-		case StateSent:
-			output += "[SENT]"
-			break
+		p, err := state.printStatus()
+		if err != nil {
+			return "", fmt.Errorf("error while printing status: %+v", err)
 		}
+		output += "[STATE]" + p
 		break
 	case byte(CommandRegister):
 		output += "[REGISTER]"
@@ -399,4 +366,42 @@ func addressFromBytes(data []byte) GertAddress {
 		Upper: (int(data[0]) << 4) | (int(data[1]) >> 4),
 		Lower: ((int(data[1]) & 0x0F) << 8) | int(data[2]),
 	}
+}
+
+func (status Status) printFailure() (string, error) {
+	switch status.Error {
+	case ErrorVersion:
+		return "[VERSION]", nil
+	case ErrorBadKey:
+		return "[BAD_KEY]", nil
+	case ErrorAlreadyRegistered:
+		return "[ALREADY_REGISTERED]", nil
+	case ErrorNotRegistered:
+		return "[NOT_REGISTERED]", nil
+	case ErrorNoRoute:
+		return "[NO_ROUTE]", nil
+	case ErrorAddressTaken:
+		return "[ADDRESS_TAKEN]", nil
+	}
+	return "", fmt.Errorf("invalid Failure")
+}
+
+func (status Status) printStatus() (string, error) {
+	switch status.Status {
+	case StateFailure:
+		p, err := status.printFailure()
+		if err != nil {
+			return "", fmt.Errorf("error while parsing Failure: %+v", err)
+		}
+		return "[FAILURE]" + p, nil
+	case StateConnected:
+		return "[CONNECTED][" + status.Version.printVersion() + "]", nil
+	case StateAssigned:
+		return "[ASSIGNED]", nil
+	case StateClosed:
+		return "[CLOSED]", nil
+	case StateSent:
+		return "[SENT]", nil
+	}
+	return "", fmt.Errorf("invalid status")
 }
