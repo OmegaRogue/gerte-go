@@ -23,45 +23,88 @@ func TestAddressFromString(t *testing.T) {
 }
 
 func TestApi_Startup(t *testing.T) {
-	server, client := net.Pipe()
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
+	t.Run("Successful Connect", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
 
-		cmd := []byte{byte(CommandState), byte(StateConnected)}
-		verByte := Version{
-			Major: 1,
-			Minor: 1,
-			Patch: 0,
-		}.versionToBytes()
-		cmd = append(cmd, verByte[0], verByte[1], verByte[2])
-		p, err := prettyPrint(cmd)
-		if err != nil {
-			t.Errorf("server errored on pretty print: %+v", err)
-		}
-		t.Logf("server sent: %v", p)
-		_, err = server.Write(cmd)
-		if err != nil {
-			t.Errorf("server errored on write: %+v", err)
-		}
+			cmd := []byte{byte(CommandState), byte(StateConnected)}
+			verByte := Version{
+				Major: 1,
+				Minor: 1,
+				Patch: 0,
+			}.versionToBytes()
+			cmd = append(cmd, verByte[0], verByte[1], verByte[2])
+			p, err := prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
 
-		err = server.Close()
-		if err != nil {
-			t.Errorf("server errored on close: %+v", err)
-		}
-		wg.Done()
-	}()
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
 
-	var api Api
-	err := api.Startup(client)
-	if err != nil {
-		t.Errorf("client errored on startup: %+v", err)
-	}
-	err = api.socket.Close()
-	if err != nil {
-		t.Errorf("client errored on close socket: %+v", err)
-	}
-	wg.Wait()
+		var api Api
+		err := api.Startup(client)
+		if err != nil {
+			t.Errorf("client errored on startup: %+v", err)
+		}
+		err = api.socket.Close()
+		if err != nil {
+			t.Errorf("client errored on close socket: %+v", err)
+		}
+		wg.Wait()
+	})
+	t.Run("Unsuccessful Connect", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+
+			cmd := []byte{byte(CommandState), byte(StateFailure), byte(ErrorVersion)}
+			p, err := prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
+
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
+
+		var api Api
+		err := api.Startup(client)
+		if err != nil {
+			if err.Error() == fmt.Sprintf("incompatible version during negotiation: %v", Version{0, 0, 0}) {
+				t.Logf("client errored successfully on startup: %+v", err)
+			} else {
+				t.Errorf("client errored on startup: %+v", err)
+			}
+
+		}
+		err = api.socket.Close()
+		if err != nil {
+			t.Errorf("client errored on close socket: %+v", err)
+		}
+		wg.Wait()
+	})
+
 }
 
 func TestApi_Shutdown(t *testing.T) {
@@ -108,103 +151,373 @@ func TestApi_Shutdown(t *testing.T) {
 }
 
 func TestApi_Register(t *testing.T) {
-	server, client := net.Pipe()
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		dat := make([]byte, 1024)
-		_, err := bufio.NewReader(server).Read(dat)
-		if err != nil {
-			t.Errorf("server errored on read: %+v", err)
-		}
-		p, err := prettyPrint(dat)
-		if err != nil {
-			t.Errorf("server errored on pretty print: %+v", err)
-		}
-		t.Logf("server received: %v", p)
-		cmd := []byte{byte(CommandState), byte(StateAssigned)}
-		p, err = prettyPrint(cmd)
-		if err != nil {
-			t.Errorf("server errored on pretty print: %+v", err)
-		}
-		t.Logf("server sent: %v", p)
-		_, err = server.Write(cmd)
-		if err != nil {
-			t.Errorf("server errored on write: %+v", err)
-		}
+	t.Run("Successful", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			dat := make([]byte, 1024)
+			_, err := bufio.NewReader(server).Read(dat)
+			if err != nil {
+				t.Errorf("server errored on read: %+v", err)
+			}
+			p, err := prettyPrint(dat)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server received: %v", p)
+			cmd := []byte{byte(CommandState), byte(StateAssigned)}
+			p, err = prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
 
-		err = server.Close()
-		if err != nil {
-			t.Errorf("server errored on close: %+v", err)
-		}
-		wg.Done()
-	}()
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
 
-	var api Api
-	api.socket = client
-	addr, _ := AddressFromString("0000.1999")
-	_, err := api.Register(addr, "test")
-	if err != nil {
-		t.Errorf("client errored on register: %+v", err)
-	}
-	err = api.socket.Close()
-	if err != nil {
-		t.Errorf("client errored on close socket: %+v", err)
-	}
-	wg.Wait()
+		var api Api
+		api.socket = client
+		addr, _ := AddressFromString("0000.1999")
+		_, err := api.Register(addr, "test")
+		if err != nil {
+			t.Errorf("client errored on register: %+v", err)
+		}
+		err = api.socket.Close()
+		if err != nil {
+			t.Errorf("client errored on close socket: %+v", err)
+		}
+		wg.Wait()
+	})
+	t.Run("BAD_KEY", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			dat := make([]byte, 1024)
+			_, err := bufio.NewReader(server).Read(dat)
+			if err != nil {
+				t.Errorf("server errored on read: %+v", err)
+			}
+			p, err := prettyPrint(dat)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server received: %v", p)
+			cmd := []byte{byte(CommandState), byte(StateFailure), byte(ErrorBadKey)}
+			p, err = prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
+
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
+
+		var api Api
+		api.socket = client
+		addr, _ := AddressFromString("0000.1999")
+		_, err := api.Register(addr, "test")
+		if err != nil {
+			if err.Error() == "key did not match that used for the requested address. Requested address may not exist" {
+				t.Logf("client errored successfully on register: %+v", err)
+			} else {
+				t.Errorf("client errored on register: %+v", err)
+			}
+
+		}
+		err = api.socket.Close()
+		if err != nil {
+			t.Errorf("client errored on close socket: %+v", err)
+		}
+		wg.Wait()
+	})
+	t.Run("ADDRESS_TAKEN", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			dat := make([]byte, 1024)
+			_, err := bufio.NewReader(server).Read(dat)
+			if err != nil {
+				t.Errorf("server errored on read: %+v", err)
+			}
+			p, err := prettyPrint(dat)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server received: %v", p)
+			cmd := []byte{byte(CommandState), byte(StateFailure), byte(ErrorAddressTaken)}
+			p, err = prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
+
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
+
+		var api Api
+		api.socket = client
+		addr, _ := AddressFromString("0000.1999")
+		_, err := api.Register(addr, "test")
+		if err != nil {
+			if err.Error() == "address request has already been claimed" {
+				t.Logf("client errored successfully on register: %+v", err)
+			} else {
+				t.Errorf("client errored on register: %+v", err)
+			}
+
+		}
+		err = api.socket.Close()
+		if err != nil {
+			t.Errorf("client errored on close socket: %+v", err)
+		}
+		wg.Wait()
+	})
+	t.Run("ALREADY_REGISTERED", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			dat := make([]byte, 1024)
+			_, err := bufio.NewReader(server).Read(dat)
+			if err != nil {
+				t.Errorf("server errored on read: %+v", err)
+			}
+			p, err := prettyPrint(dat)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server received: %v", p)
+			cmd := []byte{byte(CommandState), byte(StateFailure), byte(ErrorAlreadyRegistered)}
+			p, err = prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
+
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
+
+		var api Api
+		api.socket = client
+		addr, _ := AddressFromString("0000.1999")
+		_, err := api.Register(addr, "test")
+		if err != nil {
+			if err.Error() == "registration has already been performed successfully" {
+				t.Logf("client errored successfully on register: %+v", err)
+			} else {
+				t.Errorf("client errored on register: %+v", err)
+			}
+
+		}
+		err = api.socket.Close()
+		if err != nil {
+			t.Errorf("client errored on close socket: %+v", err)
+		}
+		wg.Wait()
+	})
+
 }
 
 func TestApi_Transmit(t *testing.T) {
-	server, client := net.Pipe()
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		dat := make([]byte, 1024)
-		_, err := bufio.NewReader(server).Read(dat)
-		if err != nil {
-			t.Errorf("server errored on read: %+v", err)
+	t.Run("Successful", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			dat := make([]byte, 1024)
+			_, err := bufio.NewReader(server).Read(dat)
+			if err != nil {
+				t.Errorf("server errored on read: %+v", err)
+			}
+			p, err := prettyPrint(dat)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server received: %v", p)
+			cmd := []byte{byte(CommandState), byte(StateSent)}
+			p, err = prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
+
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
+
+		var api Api
+		api.socket = client
+		addrE, _ := AddressFromString("0000.1999")
+		addrI, _ := AddressFromString("0123.0456")
+		gertC := GERTc{
+			GERTe: addrE,
+			GERTi: addrI,
 		}
-		p, err := prettyPrint(dat)
+		_, err := api.Transmit(gertC, addrI, []byte("hello world!"))
 		if err != nil {
-			t.Errorf("server errored on pretty print: %+v", err)
-		}
-		t.Logf("server received: %v", p)
-		cmd := []byte{byte(CommandState), byte(StateSent)}
-		p, err = prettyPrint(cmd)
-		if err != nil {
-			t.Errorf("server errored on pretty print: %+v", err)
-		}
-		t.Logf("server sent: %v", p)
-		_, err = server.Write(cmd)
-		if err != nil {
-			t.Errorf("server errored on write: %+v", err)
+			t.Errorf("client errored on transmit: %+v", err)
 		}
 
-		err = server.Close()
+		err = api.socket.Close()
 		if err != nil {
-			t.Errorf("server errored on close: %+v", err)
+			t.Errorf("client errored on close socket: %+v", err)
 		}
-		wg.Done()
-	}()
+		wg.Wait()
+	})
+	t.Run("NOT_REGISTERED", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			dat := make([]byte, 1024)
+			_, err := bufio.NewReader(server).Read(dat)
+			if err != nil {
+				t.Errorf("server errored on read: %+v", err)
+			}
+			p, err := prettyPrint(dat)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server received: %v", p)
+			cmd := []byte{byte(CommandState), byte(StateFailure), byte(ErrorNotRegistered)}
+			p, err = prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
 
-	var api Api
-	api.socket = client
-	addrE, _ := AddressFromString("0000.1999")
-	addrI, _ := AddressFromString("0123.0456")
-	gertC := GERTc{
-		GERTe: addrE,
-		GERTi: addrI,
-	}
-	_, err := api.Transmit(gertC, addrI, []byte("hello world!"))
-	if err != nil {
-		t.Errorf("client errored on transmit: %+v", err)
-	}
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
 
-	err = api.socket.Close()
-	if err != nil {
-		t.Errorf("client errored on close socket: %+v", err)
-	}
-	wg.Wait()
+		var api Api
+		api.socket = client
+		addrE, _ := AddressFromString("0000.1999")
+		addrI, _ := AddressFromString("0123.0456")
+		gertC := GERTc{
+			GERTe: addrE,
+			GERTi: addrI,
+		}
+		_, err := api.Transmit(gertC, addrI, []byte("hello world!"))
+
+		if err != nil {
+			if err.Error() == "gateway cannot send data before claiming an address" {
+				t.Logf("client errored successfully on transmit: %+v", err)
+			} else {
+				t.Errorf("client errored on transmit: %+v", err)
+			}
+		}
+		err = api.socket.Close()
+		if err != nil {
+			t.Errorf("client errored on close socket: %+v", err)
+		}
+		wg.Wait()
+	})
+	t.Run("NO_ROUTE", func(t *testing.T) {
+		server, client := net.Pipe()
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			dat := make([]byte, 1024)
+			_, err := bufio.NewReader(server).Read(dat)
+			if err != nil {
+				t.Errorf("server errored on read: %+v", err)
+			}
+			p, err := prettyPrint(dat)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server received: %v", p)
+			cmd := []byte{byte(CommandState), byte(StateFailure), byte(ErrorNoRoute)}
+			p, err = prettyPrint(cmd)
+			if err != nil {
+				t.Errorf("server errored on pretty print: %+v", err)
+			}
+			t.Logf("server sent: %v", p)
+			_, err = server.Write(cmd)
+			if err != nil {
+				t.Errorf("server errored on write: %+v", err)
+			}
+
+			err = server.Close()
+			if err != nil {
+				t.Errorf("server errored on close: %+v", err)
+			}
+			wg.Done()
+		}()
+
+		var api Api
+		api.socket = client
+		addrE, _ := AddressFromString("0000.1999")
+		addrI, _ := AddressFromString("0123.0456")
+		gertC := GERTc{
+			GERTe: addrE,
+			GERTi: addrI,
+		}
+		_, err := api.Transmit(gertC, addrI, []byte("hello world!"))
+		if err != nil {
+			if err.Error() == "data failed to send because remote gateway could not be found" {
+				t.Logf("client errored successfully on transmit: %+v", err)
+			} else {
+				t.Errorf("client errored on transmit: %+v", err)
+			}
+		}
+
+		err = api.socket.Close()
+		if err != nil {
+			t.Errorf("client errored on close socket: %+v", err)
+		}
+		wg.Wait()
+	})
 }
 
 func TestApi_Parse(t *testing.T) {
@@ -308,7 +621,6 @@ func (command Command) printCommand() (string, error) {
 	return output, nil
 }
 
-// ...
 func prettyPrint(data []byte) (string, error) {
 	output := ""
 	switch data[0] {

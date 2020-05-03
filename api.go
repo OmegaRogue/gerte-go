@@ -249,11 +249,23 @@ func (api *Api) Startup(c net.Conn) error {
 	if err != nil {
 		return fmt.Errorf("error on parse response: %+v", err)
 	}
-	if cmd.Command == CommandState && cmd.Status.Status == StateConnected {
-		api.Version = cmd.Status.Version
-		return nil
+	if cmd.Command == CommandState {
+		switch cmd.Status.Status {
+		case StateConnected:
+			api.Version = cmd.Status.Version
+			return nil
+		case StateFailure:
+			return cmd.Status.parseError()
+		case StateSent:
+			return fmt.Errorf("invalid response: command \"sent\"")
+		case StateClosed:
+			return fmt.Errorf("invalid response: command \"closed\"")
+		case StateAssigned:
+			return fmt.Errorf("invalid response: command \"assigned\"")
+		}
+
 	}
-	return fmt.Errorf("invalid response")
+	return fmt.Errorf("invalid response: %+v", cmd)
 }
 
 // Register registers the GERTe client on the GERTe address with the associated 20 byte key.
