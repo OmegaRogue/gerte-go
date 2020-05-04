@@ -257,11 +257,15 @@ func (api *Api) Startup(c net.Conn) error {
 		case StateFailure:
 			return cmd.Status.parseError()
 		case StateSent:
-			return fmt.Errorf("invalid response: command \"sent\"")
+			return fmt.Errorf("invalid response: state \"sent\"")
 		case StateClosed:
-			return fmt.Errorf("invalid response: command \"closed\"")
+			err := api.socket.Close()
+			if err != nil {
+				return fmt.Errorf("error while closing socket: %+v", err)
+			}
+			api.socket = nil
 		case StateAssigned:
-			return fmt.Errorf("invalid response: command \"assigned\"")
+			return fmt.Errorf("invalid response: state \"assigned\"")
 		}
 
 	}
