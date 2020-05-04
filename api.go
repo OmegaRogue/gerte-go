@@ -433,10 +433,10 @@ func (api *Api) Parse() (Command, error) {
 
 // PrintAddress prints a GertAddress as a string
 func (addr GertAddress) PrintAddress() string {
-	return fmt.Sprintf("%v.%v", addr.Upper, addr.Lower)
+	return fmt.Sprintf("%04v.%04v", addr.Upper, addr.Lower)
 }
 
 // PrintGERTc prints a GERTc Address as a string
 func (addr GERTc) PrintGERTc() string {
-	return fmt.Sprintf("%v.%v:%v.%v", addr.GERTe.Upper, addr.GERTe.Lower, addr.GERTi.Upper, addr.GERTi.Lower)
+	return fmt.Sprintf("%04v.%04v:%04v.%04v", addr.GERTe.Upper, addr.GERTe.Lower, addr.GERTi.Upper, addr.GERTi.Lower)
 }
