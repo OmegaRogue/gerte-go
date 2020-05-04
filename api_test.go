@@ -770,7 +770,7 @@ func prettyPrint(data []byte) (string, error) {
 	case byte(CommandRegister):
 		output += "[REGISTER]"
 		addr := addressFromBytes(data[1:4])
-		output += "[" + addr.printAddress() + "]"
+		output += "[" + addr.PrintAddress() + "]"
 		key := string(data[4:24])
 		output += "[" + key + "]"
 		break
@@ -780,7 +780,7 @@ func prettyPrint(data []byte) (string, error) {
 		length := data[10]
 		dat := data[11 : 11+length]
 		output += "[DATA]"
-		output += fmt.Sprintf("[%v][%v][%v][%v]", source.printGERTc(), target.printAddress(), length, string(dat))
+		output += fmt.Sprintf("[%v][%v][%v][%v]", source.PrintGERTc(), target.PrintAddress(), length, string(dat))
 		break
 	case byte(CommandClose):
 		output += "[CLOSE]"
@@ -793,12 +793,7 @@ func prettyPrint(data []byte) (string, error) {
 func (ver Version) printVersion() string {
 	return fmt.Sprintf("%v.%v.%v", ver.Major, ver.Minor, ver.Patch)
 }
-func (addr GertAddress) printAddress() string {
-	return fmt.Sprintf("%v.%v", addr.Upper, addr.Lower)
-}
-func (addr GERTc) printGERTc() string {
-	return fmt.Sprintf("%v.%v:%v.%v", addr.GERTe.Upper, addr.GERTe.Lower, addr.GERTi.Upper, addr.GERTi.Lower)
-}
+
 func (ver Version) versionToBytes() []byte {
 	return []byte{ver.Major, ver.Minor, ver.Patch}
 }

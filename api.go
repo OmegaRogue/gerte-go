@@ -430,3 +430,13 @@ func (api *Api) Parse() (Command, error) {
 	}
 	return Command{}, fmt.Errorf("no valid command: %v", data[0])
 }
+
+// PrintAddress prints a GertAddress as a string
+func (addr GertAddress) PrintAddress() string {
+	return fmt.Sprintf("%v.%v", addr.Upper, addr.Lower)
+}
+
+// PrintGERTc prints a GERTc Address as a string
+func (addr GERTc) PrintGERTc() string {
+	return fmt.Sprintf("%v.%v:%v.%v", addr.GERTe.Upper, addr.GERTe.Lower, addr.GERTi.Upper, addr.GERTi.Lower)
+}
