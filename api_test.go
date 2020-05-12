@@ -35,6 +35,14 @@ func StartupSuccessful(t *testing.T) {
 	wg.Add(1)
 	go func() {
 
+		dat := make([]byte, 1024)
+		_, err := bufio.NewReader(server).Read(dat)
+		if err != nil {
+			t.Errorf("server errored on read: %+v", err)
+		}
+
+		t.Logf("server received: %v", versionFromBytes(dat).printVersion())
+
 		cmd := []byte{byte(CommandState), byte(StateConnected)}
 		verByte := Version{
 			Major: 1,
@@ -60,6 +68,12 @@ func StartupSuccessful(t *testing.T) {
 	}()
 
 	var api Api
+	api.Version = Version{
+		Major: 1,
+		Minor: 1,
+		Patch: 0,
+	}
+
 	err := api.Startup(client)
 	if err != nil {
 		t.Errorf("client errored on startup: %+v", err)
@@ -75,6 +89,14 @@ func StartupUnsuccessful(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
+
+		dat := make([]byte, 1024)
+		_, err := bufio.NewReader(server).Read(dat)
+		if err != nil {
+			t.Errorf("server errored on read: %+v", err)
+		}
+
+		t.Logf("server received: %v", versionFromBytes(dat).printVersion())
 
 		cmd := []byte{byte(CommandState), byte(StateFailure), byte(ErrorVersion)}
 		p, err := prettyPrint(cmd)
@@ -95,6 +117,12 @@ func StartupUnsuccessful(t *testing.T) {
 	}()
 
 	var api Api
+	api.Version = Version{
+		Major: 1,
+		Minor: 1,
+		Patch: 0,
+	}
+
 	err := api.Startup(client)
 	if err != nil {
 		if err.Error() == fmt.Sprintf("incompatible version during negotiation: %v", Version{0, 0, 0}) {
@@ -116,6 +144,14 @@ func StartupSent(t *testing.T) {
 	wg.Add(1)
 	go func() {
 
+		dat := make([]byte, 1024)
+		_, err := bufio.NewReader(server).Read(dat)
+		if err != nil {
+			t.Errorf("server errored on read: %+v", err)
+		}
+
+		t.Logf("server received: %v", versionFromBytes(dat).printVersion())
+
 		cmd := []byte{byte(CommandState), byte(StateSent)}
 		p, err := prettyPrint(cmd)
 		if err != nil {
@@ -135,6 +171,12 @@ func StartupSent(t *testing.T) {
 	}()
 
 	var api Api
+	api.Version = Version{
+		Major: 1,
+		Minor: 1,
+		Patch: 0,
+	}
+
 	err := api.Startup(client)
 	if err != nil {
 		if err.Error() == "invalid response: state \"sent\"" {
@@ -156,6 +198,14 @@ func StartupAssigned(t *testing.T) {
 	wg.Add(1)
 	go func() {
 
+		dat := make([]byte, 1024)
+		_, err := bufio.NewReader(server).Read(dat)
+		if err != nil {
+			t.Errorf("server errored on read: %+v", err)
+		}
+
+		t.Logf("server received: %v", versionFromBytes(dat).printVersion())
+
 		cmd := []byte{byte(CommandState), byte(StateAssigned)}
 		p, err := prettyPrint(cmd)
 		if err != nil {
@@ -175,6 +225,12 @@ func StartupAssigned(t *testing.T) {
 	}()
 
 	var api Api
+	api.Version = Version{
+		Major: 1,
+		Minor: 1,
+		Patch: 0,
+	}
+
 	err := api.Startup(client)
 	if err != nil {
 		if err.Error() == "invalid response: state \"assigned\"" {
@@ -195,6 +251,14 @@ func StartupInvalidCmd(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
+
+		dat := make([]byte, 1024)
+		_, err := bufio.NewReader(server).Read(dat)
+		if err != nil {
+			t.Errorf("server errored on read: %+v", err)
+		}
+
+		t.Logf("server received: %v", versionFromBytes(dat).printVersion())
 
 		cmd := []byte(string([]byte{byte(CommandRegister)}) +
 			string(GertAddress{Upper: 0, Lower: 0}.toBytes()) +
@@ -217,6 +281,12 @@ func StartupInvalidCmd(t *testing.T) {
 	}()
 
 	var api Api
+	api.Version = Version{
+		Major: 1,
+		Minor: 1,
+		Patch: 0,
+	}
+
 	err := api.Startup(client)
 	if err != nil {
 		if err.Error() == "error on parse response: geds returned command register" {
@@ -689,7 +759,7 @@ func TestApi_Parse(t *testing.T) {
 	if err != nil {
 		t.Errorf("client errored on parse response: %+v", err)
 	}
-	p, err := cmd.printCommand()
+	p, err := cmd.PrintCommand()
 	if err != nil {
 		t.Errorf("client errored on print command: %+v", err)
 	}
@@ -701,58 +771,6 @@ func TestApi_Parse(t *testing.T) {
 	wg.Wait()
 }
 
-func (command Command) printCommand() (string, error) {
-	output := ""
-	switch command.Command {
-	case CommandState:
-		output += "[STATE]"
-		switch command.Status.Status {
-		case StateFailure:
-			output += "[FAILURE]"
-			switch command.Status.Error {
-			case ErrorVersion:
-				output += "[VERSION]"
-				break
-			case ErrorBadKey:
-				output += "[BAD_KEY]"
-				break
-			case ErrorAlreadyRegistered:
-				output += "[ALREADY_REGISTERED]"
-				break
-			case ErrorNotRegistered:
-				output += "[NOT_REGISTERED]"
-				break
-			case ErrorNoRoute:
-				output += "[NO_ROUTE]"
-				break
-			case ErrorAddressTaken:
-				output += "[ADDRESS_TAKEN]"
-				break
-			}
-			break
-		case StateConnected:
-			output += "[CONNECTED]"
-			output += "[" + command.Status.Version.printVersion() + "]"
-			break
-		case StateAssigned:
-			output += "[ASSIGNED]"
-			break
-		case StateClosed:
-			output += "[CLOSED]"
-			break
-		case StateSent:
-			output += "[SENT]"
-			break
-		}
-		break
-	case CommandClose:
-		output += "[CLOSE]"
-		break
-	default:
-		return "", fmt.Errorf("no valid command: %v", command.Command)
-	}
-	return output, nil
-}
 func prettyPrint(data []byte) (string, error) {
 	output := ""
 	switch data[0] {
@@ -790,13 +808,17 @@ func prettyPrint(data []byte) (string, error) {
 	}
 	return output, nil
 }
-func (ver Version) printVersion() string {
-	return fmt.Sprintf("%v.%v.%v", ver.Major, ver.Minor, ver.Patch)
-}
 
 func (ver Version) versionToBytes() []byte {
 	return []byte{ver.Major, ver.Minor, ver.Patch}
 }
+func versionFromBytes(b []byte) Version {
+	return Version{
+		Major: b[0],
+		Minor: b[1],
+	}
+}
+
 func addressFromBytes(data []byte) GertAddress {
 	return GertAddress{
 		Upper: (int(data[0]) << 4) | (int(data[1]) >> 4),

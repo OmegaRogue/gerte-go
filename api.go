@@ -142,11 +142,11 @@ func AddressFromString(addr string) (GertAddress, error) {
 
 	upper, err := strconv.ParseInt(parts[0], 10, 0)
 	if err != nil {
-		return GertAddress{}, fmt.Errorf("error on parse upper String: %+v", err)
+		return GertAddress{}, fmt.Errorf("error on parse upper String: %w", err)
 	}
 	lower, err := strconv.ParseInt(parts[1], 10, 0)
 	if err != nil {
-		return GertAddress{}, fmt.Errorf("error on parse lower String: %+v", err)
+		return GertAddress{}, fmt.Errorf("error on parse lower String: %w", err)
 	}
 	return GertAddress{
 		Upper: int(upper),
@@ -236,6 +236,14 @@ func makeStatus(data []byte) (Status, error) {
 	return Status{}, fmt.Errorf("state didn't match any known state: %v", data[0])
 }
 
+// NewApi is the constructor for Api, it assigns the Version
+func NewApi(ver Version) *Api {
+	api := new(Api)
+	api.Version = ver
+
+	return api
+}
+
 // Startup initializes the API.
 // It returns any encountered errors.
 // Initializing the API is incredibly simple.
@@ -245,9 +253,13 @@ func (api *Api) Startup(c net.Conn) error {
 		return fmt.Errorf("socket already open")
 	}
 	api.socket = c
+	_, err := api.socket.Write([]byte{api.Version.Major, api.Version.Minor})
+	if err != nil {
+		return fmt.Errorf("error on send version: %w", err)
+	}
 	cmd, err := api.Parse()
 	if err != nil {
-		return fmt.Errorf("error on parse response: %+v", err)
+		return fmt.Errorf("error on parse response: %w", err)
 	}
 	if cmd.Command == CommandState {
 		switch cmd.Status.Status {
@@ -261,7 +273,7 @@ func (api *Api) Startup(c net.Conn) error {
 		case StateClosed:
 			err := api.socket.Close()
 			if err != nil {
-				return fmt.Errorf("error while closing socket: %+v", err)
+				return fmt.Errorf("error while closing socket: %w", err)
 			}
 			api.socket = nil
 		case StateAssigned:
@@ -269,7 +281,8 @@ func (api *Api) Startup(c net.Conn) error {
 		}
 
 	}
-	return fmt.Errorf("invalid response: %+v", cmd)
+	cm, _ := cmd.PrintCommand()
+	return fmt.Errorf("invalid response: %v", cm)
 }
 
 // Register registers the GERTe client on the GERTe address with the associated 20 byte key.
@@ -284,12 +297,11 @@ func (api *Api) Register(addr GertAddress, key string) (bool, error) {
 	b.WriteString(key)
 	_, err := api.socket.Write([]byte(b.String()))
 	if err != nil {
-		return false, fmt.Errorf("error on write: %+v", err)
+		return false, fmt.Errorf("error on write: %w", err)
 	}
-
 	cmd, err := api.Parse()
 	if err != nil {
-		return false, fmt.Errorf("error parsing response: %+v", err)
+		return false, fmt.Errorf("error parsing response: %w", err)
 	}
 	if cmd.Command == CommandState {
 		switch cmd.Status.Status {
@@ -300,7 +312,63 @@ func (api *Api) Register(addr GertAddress, key string) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, fmt.Errorf("no valid response")
+	c, _ := cmd.PrintCommand()
+	return false, fmt.Errorf("no valid response: %v", c)
+}
+func (command Command) PrintCommand() (string, error) {
+	output := ""
+	switch command.Command {
+	case CommandState:
+		output += "[STATE]"
+		switch command.Status.Status {
+		case StateFailure:
+			output += "[FAILURE]"
+			switch command.Status.Error {
+			case ErrorVersion:
+				output += "[VERSION]"
+				break
+			case ErrorBadKey:
+				output += "[BAD_KEY]"
+				break
+			case ErrorAlreadyRegistered:
+				output += "[ALREADY_REGISTERED]"
+				break
+			case ErrorNotRegistered:
+				output += "[NOT_REGISTERED]"
+				break
+			case ErrorNoRoute:
+				output += "[NO_ROUTE]"
+				break
+			case ErrorAddressTaken:
+				output += "[ADDRESS_TAKEN]"
+				break
+			}
+			break
+		case StateConnected:
+			output += "[CONNECTED]"
+			output += "[" + command.Status.Version.printVersion() + "]"
+			break
+		case StateAssigned:
+			output += "[ASSIGNED]"
+			break
+		case StateClosed:
+			output += "[CLOSED]"
+			break
+		case StateSent:
+			output += "[SENT]"
+			break
+		}
+		break
+	case CommandClose:
+		output += "[CLOSE]"
+		break
+	default:
+		return "", fmt.Errorf("no valid command: %v", command.Command)
+	}
+	return output, nil
+}
+func (ver Version) printVersion() string {
+	return fmt.Sprintf("%v.%v.%v", ver.Major, ver.Minor, ver.Patch)
 }
 
 // Transmit sends data to the target Address.
@@ -327,11 +395,11 @@ func (api *Api) Transmit(target GERTc, source GertAddress, data []byte) (bool, e
 
 	_, err := api.socket.Write([]byte(b.String()))
 	if err != nil {
-		return false, fmt.Errorf("error on write: %+v", err)
+		return false, fmt.Errorf("error on write: %w", err)
 	}
 	cmd, err := api.Parse()
 	if err != nil {
-		return false, fmt.Errorf("error on parse response: %+v", err)
+		return false, fmt.Errorf("error on parse response: %w", err)
 	}
 	if cmd.Command == CommandState {
 		switch cmd.Status.Status {
@@ -358,16 +426,16 @@ func (api *Api) Shutdown() error {
 	if api.socket != nil {
 		_, err := api.socket.Write([]byte{byte(CommandClose)})
 		if err != nil {
-			return fmt.Errorf("error on write close command: %+v", err)
+			return fmt.Errorf("error on write close command: %w", err)
 		}
 		cmd, err := api.Parse()
 		if err != nil {
-			return fmt.Errorf("error on parsing response: %+v", err)
+			return fmt.Errorf("error on parsing response: %w", err)
 		}
 		if cmd.Command == CommandState && cmd.Status.Status == StateClosed {
 			err = api.socket.Close()
 			if err != nil {
-				return fmt.Errorf("error on close socket: %+v", err)
+				return fmt.Errorf("error on close socket: %w", err)
 			}
 			api.socket = nil
 			return nil
@@ -385,15 +453,15 @@ func (api *Api) Shutdown() error {
 func (api *Api) Parse() (Command, error) {
 	data := make([]byte, 1024)
 	// _, err := bufio.NewReader(api.socket).Read(data)
-	_, err := api.socket.Read(data)
+	n, err := api.socket.Read(data)
 	if err != nil {
-		return Command{}, fmt.Errorf("error on read data: %+v", err)
+		return Command{}, fmt.Errorf("error on read data (%v bytes): %w", n, err)
 	}
 	switch data[0] {
 	case byte(CommandState):
 		state, err := makeStatus(data[1:])
 		if err != nil {
-			return Command{}, fmt.Errorf("error while parsing status data: %+v", err)
+			return Command{}, fmt.Errorf("error while parsing status data: %w", err)
 		}
 		return Command{
 			Command: CommandState,
@@ -409,7 +477,7 @@ func (api *Api) Parse() (Command, error) {
 	case byte(CommandData):
 		packet, err := makePacket(data[1:])
 		if err != nil {
-			return Command{}, fmt.Errorf("error while parsing packet data: %+v", err)
+			return Command{}, fmt.Errorf("error while parsing packet data: %w", err)
 		}
 		return Command{
 			Command: CommandData,
@@ -419,7 +487,7 @@ func (api *Api) Parse() (Command, error) {
 	case byte(CommandClose):
 		err := api.socket.Close()
 		if err != nil {
-			return Command{}, fmt.Errorf("error while closing socket: %+v", err)
+			return Command{}, fmt.Errorf("error while closing socket: %w", err)
 		}
 		api.socket = nil
 		return Command{
