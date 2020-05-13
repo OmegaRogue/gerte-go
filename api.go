@@ -5,7 +5,6 @@ package gerte
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 )
 
@@ -117,125 +116,6 @@ type (
 	}
 )
 
-func (status Status) parseError() error {
-	switch status.Error {
-	case ErrorVersion:
-		return fmt.Errorf("incompatible version during negotiation: %v", status.Version)
-	case ErrorBadKey:
-		return fmt.Errorf("key did not match that used for the requested address. Requested address may not exist")
-	case ErrorAlreadyRegistered:
-		return fmt.Errorf("registration has already been performed successfully")
-	case ErrorNotRegistered:
-		return fmt.Errorf("gateway cannot send data before claiming an address")
-	case ErrorNoRoute:
-		return fmt.Errorf("data failed to send because remote gateway could not be found")
-	case ErrorAddressTaken:
-		return fmt.Errorf("address request has already been claimed")
-	}
-	return fmt.Errorf("no valid error")
-}
-
-// AddressFromString converts a string with an address in the format "XXXX.YYYY" into the corresponding GertAddress.
-// It returns the GertAddress and any encountered errors.
-func AddressFromString(addr string) (GertAddress, error) {
-	parts := strings.Split(addr, ".")
-
-	upper, err := strconv.ParseInt(parts[0], 10, 0)
-	if err != nil {
-		return GertAddress{}, fmt.Errorf("error on parse upper String: %w", err)
-	}
-	lower, err := strconv.ParseInt(parts[1], 10, 0)
-	if err != nil {
-		return GertAddress{}, fmt.Errorf("error on parse lower String: %w", err)
-	}
-	return GertAddress{
-		Upper: int(upper),
-		Lower: int(lower),
-	}, nil
-}
-
-func (addr GertAddress) toBytes() []byte {
-	var b strings.Builder
-	b.WriteByte(byte(addr.Upper >> 4))
-	b.WriteByte(byte(((addr.Upper & 0x0F) << 4) | (addr.Lower >> 8)))
-	b.WriteByte(byte(addr.Lower & 0xFF))
-	return []byte(b.String())
-}
-
-func gertCFromBytes(data []byte) GERTc {
-	return GERTc{
-		GERTe: GertAddress{
-			Upper: (int(data[0]) << 4) | (int(data[1]) >> 4),
-			Lower: ((int(data[1]) & 0x0F) << 8) | int(data[2]),
-		},
-		GERTi: GertAddress{
-			Upper: (int(data[3]) << 4) | (int(data[4]) >> 4),
-			Lower: ((int(data[4]) & 0x0F) << 8) | int(data[5]),
-		},
-	}
-
-}
-
-func makePacket(data []byte) (Packet, error) {
-	if len(data) < 13 {
-		return Packet{}, fmt.Errorf("data too short: %v<13", len(data))
-	}
-
-	source := gertCFromBytes(data[:6])
-	target := gertCFromBytes(data[6:12])
-	length := int(data[12])
-
-	if len(data) < 13+length {
-		return Packet{}, fmt.Errorf("data too short: %v<13+%v", len(data), length)
-	}
-
-	return Packet{
-		Source: source,
-		Target: target,
-		Data:   data[13:],
-	}, nil
-}
-
-func makeStatus(data []byte) (Status, error) {
-	switch data[0] {
-	case byte(StateFailure):
-		return Status{
-			Status: StateFailure,
-			Size:   2,
-			Error:  GertError(data[1]),
-		}, nil
-	case byte(StateConnected):
-		if len(data) < 3 {
-			return Status{}, fmt.Errorf("data too short: %v<3", len(data))
-		}
-		return Status{
-			Status: StateConnected,
-			Size:   4,
-			Version: Version{
-				Major: data[1],
-				Minor: data[2],
-				Patch: data[3],
-			},
-		}, nil
-	case byte(StateAssigned):
-		return Status{
-			Status: StateAssigned,
-			Size:   1,
-		}, nil
-	case byte(StateClosed):
-		return Status{
-			Status: StateClosed,
-			Size:   1,
-		}, nil
-	case byte(StateSent):
-		return Status{
-			Status: StateSent,
-			Size:   1,
-		}, nil
-	}
-	return Status{}, fmt.Errorf("state didn't match any known state: %v", data[0])
-}
-
 // NewApi is the constructor for Api, it assigns the Version
 func NewApi(ver Version) *Api {
 	api := new(Api)
@@ -292,8 +172,7 @@ func (api *Api) Startup(c net.Conn) error {
 func (api *Api) Register(addr GertAddress, key string) (bool, error) {
 	var b strings.Builder
 	b.WriteByte(byte(CommandRegister))
-	rawAddr := addr.toBytes()
-	b.Write(rawAddr)
+	b.Write(addr.ToBytes())
 	b.WriteString(key)
 	_, err := api.socket.Write([]byte(b.String()))
 	if err != nil {
@@ -315,85 +194,27 @@ func (api *Api) Register(addr GertAddress, key string) (bool, error) {
 	c, _ := cmd.PrintCommand()
 	return false, fmt.Errorf("no valid response: %v", c)
 }
-func (command Command) PrintCommand() (string, error) {
-	output := ""
-	switch command.Command {
-	case CommandState:
-		output += "[STATE]"
-		switch command.Status.Status {
-		case StateFailure:
-			output += "[FAILURE]"
-			switch command.Status.Error {
-			case ErrorVersion:
-				output += "[VERSION]"
-				break
-			case ErrorBadKey:
-				output += "[BAD_KEY]"
-				break
-			case ErrorAlreadyRegistered:
-				output += "[ALREADY_REGISTERED]"
-				break
-			case ErrorNotRegistered:
-				output += "[NOT_REGISTERED]"
-				break
-			case ErrorNoRoute:
-				output += "[NO_ROUTE]"
-				break
-			case ErrorAddressTaken:
-				output += "[ADDRESS_TAKEN]"
-				break
-			}
-			break
-		case StateConnected:
-			output += "[CONNECTED]"
-			output += "[" + command.Status.Version.printVersion() + "]"
-			break
-		case StateAssigned:
-			output += "[ASSIGNED]"
-			break
-		case StateClosed:
-			output += "[CLOSED]"
-			break
-		case StateSent:
-			output += "[SENT]"
-			break
-		}
-		break
-	case CommandClose:
-		output += "[CLOSE]"
-		break
-	default:
-		return "", fmt.Errorf("no valid command: %v", command.Command)
-	}
-	return output, nil
-}
-func (ver Version) printVersion() string {
-	return fmt.Sprintf("%v.%v.%v", ver.Major, ver.Minor, ver.Patch)
-}
 
 // Transmit sends data to the target Address.
 // It returns a bool whether the operation was successful and any encountered errors.
 // The official API only allows transmissions from GERTi to GERTi via GERTe.
 // his means that a GERTi address must be provided for each endpoint in a message.
-func (api *Api) Transmit(target GERTc, source GertAddress, data []byte) (bool, error) {
+func (api *Api) Transmit(pkt Packet) (bool, error) {
 
 	if api.socket == nil {
 		return false, fmt.Errorf("not connected")
-	}
-	if len(data) > 255 {
-		return false, fmt.Errorf("data cannot exceed 255 bytes")
 	}
 
 	var b strings.Builder
 
 	b.WriteByte(byte(CommandData))
-	b.Write(target.GERTe.toBytes())
-	b.Write(target.GERTi.toBytes())
-	b.Write(source.toBytes())
-	b.WriteByte(byte(len(data)))
+	data, err := pkt.ToBytes()
+	if err != nil {
+		return false, fmt.Errorf("error on marshal packet: %w", err)
+	}
 	b.Write(data)
 
-	_, err := api.socket.Write([]byte(b.String()))
+	_, err = api.socket.Write([]byte(b.String()))
 	if err != nil {
 		return false, fmt.Errorf("error on write: %w", err)
 	}
@@ -457,54 +278,22 @@ func (api *Api) Parse() (Command, error) {
 	if err != nil {
 		return Command{}, fmt.Errorf("error on read data (%v bytes): %w", n, err)
 	}
-	switch data[0] {
-	case byte(CommandState):
-		state, err := makeStatus(data[1:])
-		if err != nil {
-			return Command{}, fmt.Errorf("error while parsing status data: %w", err)
-		}
-		return Command{
-			Command: CommandState,
-			Packet:  Packet{},
-			Status:  state,
-		}, nil
-	case byte(CommandRegister):
-		return Command{
-			Command: CommandRegister,
-			Packet:  Packet{},
-			Status:  Status{},
-		}, fmt.Errorf("geds returned command register")
-	case byte(CommandData):
-		packet, err := makePacket(data[1:])
-		if err != nil {
-			return Command{}, fmt.Errorf("error while parsing packet data: %w", err)
-		}
-		return Command{
-			Command: CommandData,
-			Packet:  packet,
-			Status:  Status{},
-		}, nil
-	case byte(CommandClose):
+	cmd, err := CommandFromBytes(data)
+	if err != nil {
+		return Command{}, fmt.Errorf("error parsing command: %w", err)
+	}
+
+	switch cmd.Command {
+	case CommandRegister:
+		return cmd, fmt.Errorf("geds returned command register")
+	case CommandClose:
 		err := api.socket.Close()
 		if err != nil {
 			return Command{}, fmt.Errorf("error while closing socket: %w", err)
 		}
 		api.socket = nil
-		return Command{
-			Command: CommandClose,
-			Packet:  Packet{},
-			Status:  Status{},
-		}, nil
+		break
 	}
-	return Command{}, fmt.Errorf("no valid command: %v", data[0])
-}
 
-// PrintAddress prints a GertAddress as a string
-func (addr GertAddress) PrintAddress() string {
-	return fmt.Sprintf("%04v.%04v", addr.Upper, addr.Lower)
-}
-
-// PrintGERTc prints a GERTc Address as a string
-func (addr GERTc) PrintGERTc() string {
-	return fmt.Sprintf("%04v.%04v:%04v.%04v", addr.GERTe.Upper, addr.GERTe.Lower, addr.GERTi.Upper, addr.GERTi.Lower)
+	return cmd, nil
 }
