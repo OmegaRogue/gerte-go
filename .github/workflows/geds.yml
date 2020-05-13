@@ -9,7 +9,7 @@ on:
 jobs:
 
   geds:
-    name: Everything
+    name: Test Against GEDS
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.14.2
