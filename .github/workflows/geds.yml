@@ -42,7 +42,7 @@ jobs:
       
     - name: Create Peers File
       id: create-peers
-      run: touch test/GERT/GERTe/peers.geds
+      run: mv test/peers.geds test/GERT/GERTe
 
     - name: List Files
       run: ls -a test/GERT/GERTe/
