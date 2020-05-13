@@ -177,9 +177,9 @@ jobs:
 
 
       - name: Print Error Dump
-        if: steps.run-example.outcome == 'failure'
+        #if: steps.run-example.outcome == 'failure'
         run: cat /test/error.dump
 
       - name: Print Error Log
-        if: steps.run-example.outcome == 'failure'
+        #if: steps.run-example.outcome == 'failure'
         run: cat /test/errors.log
