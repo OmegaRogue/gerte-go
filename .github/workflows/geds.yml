@@ -30,19 +30,15 @@ jobs:
             dep ensure
         fi
     - name: clone geds
-      run: git clone https://github.com/GlobalEmpire/GERT 
+      run: git clone https://github.com/GlobalEmpire/GERT test/GERT
       
-    - name: ls
-      run: ls -a
-#    - name: Run Makefile
-#      run: make debug
-#      working-directory: GERT/GERTe
-      
-      
-    - name: Test
-      run: go test -coverprofile=coverage.txt -covermode=atomic -v -bench .
-      
-    - name: Codecov
-      uses: codecov/codecov-action@v1.0.6
-      with:
-        fail_ci_if_error: true
+    
+    - name: Run Makefile
+      run: make debug
+      working-directory: test/GERT/GERTe
+    - name: Copy resolutions into GEDS directory
+      run: mv test/resolutions.geds test/GERT/GERTe
+    - name: Start GEDS
+      run: ./GEDSv1.1 -a 0.0.0.0 -d &
+    - name: Run example
+      run: go run examples/basic/main.go
