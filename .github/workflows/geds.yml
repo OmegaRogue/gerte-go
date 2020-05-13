@@ -99,9 +99,25 @@ jobs:
         uses: jakejarvis/wait-action@v0.1.0
         with:
           time: '30s'
+
       - name: Run example
+        id: run-example
         if: steps.cache.outputs.cache-hit == 'true'
         run: go run examples/basic/main.go
+
+      - name: Wait / Sleep
+        if: steps.start-geds.outcome == 'failure' || steps.run-example.outcome == 'failure'
+        uses: jakejarvis/wait-action@v0.1.0
+        with:
+        time: '30s'
+
+      - name: Print Error Dump
+        if: steps.start-geds.outcome == 'failure' || steps.run-example.outcome == 'failure'
+        run: cat /test/error.dump
+
+      - name: Print Error Log
+        if: steps.start-geds.outcome == 'failure' || steps.run-example.outcome == 'failure'
+        run: cat /test/errors.log
 
   everything:
     name: Everything
@@ -161,6 +177,7 @@ jobs:
         run: go run examples/basic/main.go
 
       - name: Wait / Sleep
+        if: steps.start-geds.outcome == 'failure' || steps.run-example.outcome == 'failure'
         uses: jakejarvis/wait-action@v0.1.0
         with:
           time: '30s'
