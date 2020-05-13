@@ -57,7 +57,7 @@ jobs:
       - name: Wait / Sleep
         uses: jakejarvis/wait-action@v0.1.0
         with:
-          time: '30s'
+          time: '10s'
 
       - name: Run example
         id: run-example
