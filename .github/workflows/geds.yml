@@ -40,6 +40,9 @@ jobs:
     - name: Copy resolutions into GEDS directory
       run: mv test/resolutions.geds test/GERT/GERTe
       
+    - name: Create Peers File
+      run: touch test/GERT/GERTe/peers.geds
+      
     - name: Start GEDS
       id: start-geds
       run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
