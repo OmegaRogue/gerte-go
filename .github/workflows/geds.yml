@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  geds-test:
+  geds-setup:
     name: Build
     runs-on: ubuntu-latest
     steps:
@@ -43,10 +43,14 @@ jobs:
     - name: Create Peers File
       id: create-peers
       run: touch test/GERT/GERTe/peers.geds
-      
+
     - name: List Files
       run: ls -a test/GERT/GERTe/
-      
+  test-geds:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: [geds-setup]
+    steps:
     - name: Start GEDS
       id: start-geds
       run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
