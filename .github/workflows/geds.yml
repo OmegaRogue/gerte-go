@@ -42,7 +42,7 @@ jobs:
       
     - name: Start GEDS
       id: start-geds
-      run: ls -a
+      run: ls -a test/GERT/GERTe
       #run: ./GEDSv1.1 -a 0.0.0.0 -d &
       
     - name: Run example
