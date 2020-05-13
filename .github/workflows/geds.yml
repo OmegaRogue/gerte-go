@@ -47,6 +47,26 @@ jobs:
     - name: List Files
       run: ls -a test/GERT/GERTe/
       
+    - uses: actions/cache@v1
+      id: cache
+      with:
+        path: test
+        key: geds
+
+  test:
+    name: Test GEDS
+    runs-on: ubuntu-latest
+    needs: [geds-setup]
+    steps:
+    - uses: actions/cache@v1
+      id: cache
+      with:
+        path: test
+        key: geds
+    - name: Install Dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: /install.sh
+ 
     - name: Start GEDS
       id: start-geds
       if: steps.create-peers.outcome == 'success'
