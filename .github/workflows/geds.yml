@@ -58,20 +58,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: [geds-setup]
     steps:
+    - name: Wait / Sleep
+      uses: jakejarvis/wait-action@v0.1.0
+      with:
+        time: '30s'
     - uses: actions/cache@v1
       id: cache
       with:
         path: test
         key: geds
-    - name: Install Dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: /install.sh
  
     - name: Start GEDS
       id: start-geds
-      if: steps.create-peers.outcome == 'success'
+      if: steps.cache.outputs.cache-hit != 'true'
       run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
       
     - name: Run example
-      if: steps.start-geds.outcome == 'success'
+      if: steps.cache.outputs.cache-hit != 'true'
       run: go run examples/basic/main.go
