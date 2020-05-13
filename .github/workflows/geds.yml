@@ -49,9 +49,9 @@ jobs:
       
     - name: Start GEDS
       id: start-geds
-      if: steps.create-peers.outcome == "success"
+      if: steps.create-peers.outcome == 'success'
       run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
       
     - name: Run example
-      if: steps.start-geds.outcome == "success"
+      if: steps.start-geds.outcome == 'success'
       run: go run examples/basic/main.go
