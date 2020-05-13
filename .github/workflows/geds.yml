@@ -109,7 +109,7 @@ jobs:
         if: steps.start-geds.outcome == 'failure' || steps.run-example.outcome == 'failure'
         uses: jakejarvis/wait-action@v0.1.0
         with:
-        time: '30s'
+          time: '30s'
 
       - name: Print Error Dump
         if: steps.start-geds.outcome == 'failure' || steps.run-example.outcome == 'failure'
