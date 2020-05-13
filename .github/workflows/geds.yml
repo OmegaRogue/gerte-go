@@ -89,6 +89,10 @@ jobs:
       if: steps.cache.outputs.cache-hit == 'true'
       run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
       
+    - name: Wait / Sleep
+      uses: jakejarvis/wait-action@v0.1.0
+      with:
+        time: '30s'
     - name: Run example
       if: steps.cache.outputs.cache-hit == 'true'
       run: go run examples/basic/main.go
