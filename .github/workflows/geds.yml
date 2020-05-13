@@ -29,7 +29,7 @@ jobs:
           fi
 
       - name: clone geds
-        run: git clone https://github.com/GlobalEmpire/GERT test/GERT
+        run: git clone -b TYKUHN2-patch-1 https://github.com/GlobalEmpire/GERT test/GERT
 
 
       - name: Run Makefile
