@@ -237,7 +237,11 @@ func (api *Api) Transmit(pkt Packet) (bool, error) {
 		}
 
 	}
-	return false, fmt.Errorf("no valid response")
+	p, err := cmd.PrintCommand()
+	if err != nil {
+		return false, fmt.Errorf("error on print command: %w", err)
+	}
+	return false, fmt.Errorf("no valid response: %v", p)
 }
 
 // Shutdown Gracefully closes the GERTe Socket.

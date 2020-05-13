@@ -1,6 +1,9 @@
 package gerte
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // TODO Make Doc
 func (cmd Command) PrintCommand() (string, error) {
@@ -49,6 +52,10 @@ func (cmd Command) PrintCommand() (string, error) {
 		break
 	case CommandClose:
 		output += "[CLOSE]"
+		break
+	case CommandData:
+		output += "[DATA]"
+		output += cmd.Packet.PrintPacket()
 		break
 	default:
 		return "", fmt.Errorf("no valid cmd: %v", cmd.Command)
@@ -107,6 +114,13 @@ func (status Status) PrintStatus() (string, error) {
 		return "[SENT]", nil
 	}
 	return "", fmt.Errorf("invalid status")
+}
+
+// TODO Make Doc
+func (pkt Packet) PrintPacket() string {
+
+	fmt.Println(string(pkt.Data))
+	return fmt.Sprintf("[%v][%v][%v][%v]", pkt.Source.PrintGERTc(), pkt.Target.PrintGERTc(), len(pkt.Data), strings.Trim(string(pkt.Data), " "))
 }
 
 // TODO Make Doc
