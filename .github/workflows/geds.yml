@@ -47,6 +47,10 @@ jobs:
     - name: List Files
       run: ls -a test/GERT/GERTe/
       
+    - name: Wait / Sleep
+      uses: jakejarvis/wait-action@v0.1.0
+      with:
+        time: '30s'
     - uses: actions/cache@v1
       id: cache
       with:
