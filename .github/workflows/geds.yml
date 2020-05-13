@@ -31,22 +31,22 @@ jobs:
         fi
     - name: clone geds
       run: git clone https://github.com/GlobalEmpire/GERT test/GERT
-      
-    
+
+
     - name: Run Makefile
       run: make debug
       working-directory: test/GERT/GERTe
-      
+
     - name: Copy resolutions into GEDS directory
       run: mv test/resolutions.geds test/GERT/GERTe
-      
+
     - name: Create Peers File
       id: create-peers
       run: mv test/peers.geds test/GERT/GERTe
 
     - name: List Files
       run: ls -a test/GERT/GERTe/
-      
+
     - name: Wait / Sleep
       uses: jakejarvis/wait-action@v0.1.0
       with:
@@ -104,3 +104,58 @@ jobs:
     - name: Run example
       if: steps.cache.outputs.cache-hit == 'true'
       run: go run examples/basic/main.go
+    everything:
+      name: Everything
+      runs-on: ubuntu-latest
+      steps:
+        - name: Set up Go 1.x
+          uses: actions/setup-go@v2
+          with:
+            go-version: ^1.14.2
+          id: go
+        - name: Check out code into the Go module directory
+          uses: actions/checkout@v2
+
+        - name: Get dependencies
+          run: |
+            go get -v -t -d ./...
+            if [ -f Gopkg.toml ]; then
+                curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+                dep ensure
+            fi
+        - name: clone geds
+          run: git clone https://github.com/GlobalEmpire/GERT test/GERT
+
+
+        - name: Run Makefile
+          run: make debug
+          working-directory: test/GERT/GERTe
+
+        - name: Copy resolutions into GEDS directory
+          run: mv test/resolutions.geds test/GERT/GERTe
+
+        - name: Create Peers File
+          id: create-peers
+          run: mv test/peers.geds test/GERT/GERTe
+
+        - name: List Files
+          run: ls -a test/GERT/GERTe
+
+        - name: Wait / Sleep
+          uses: jakejarvis/wait-action@v0.1.0
+          with:
+            time: '30s'
+
+        - name: Start GEDS
+          id: start-geds
+          run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
+
+        - name: List Files
+          run: ls -a test/GERT/GERTe
+
+        - name: Wait / Sleep
+          uses: jakejarvis/wait-action@v0.1.0
+          with:
+            time: '30s'
+        - name: Run example
+          run: go run examples/basic/main.go
