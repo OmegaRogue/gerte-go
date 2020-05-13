@@ -78,20 +78,24 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-    - name: Wait / Sleep
-      uses: jakejarvis/wait-action@v0.1.0
-      with:
-        time: '30s'
     - uses: actions/cache@v1
       id: cache
       with:
         path: test
         key: geds
+    - name: Wait / Sleep
+      uses: jakejarvis/wait-action@v0.1.0
+      with:
+        time: '30s'
+    
  
     - name: Start GEDS
       id: start-geds
       if: steps.cache.outputs.cache-hit == 'true'
       run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
+      
+    - name: List Files
+      run: ls -a test/GERT/GERTe/
       
     - name: Wait / Sleep
       uses: jakejarvis/wait-action@v0.1.0
