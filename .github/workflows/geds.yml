@@ -62,6 +62,10 @@ jobs:
       - name: Run example
         id: run-example
         run: go run examples/basic/main.go
+        env:
+          - SERVER_ADDR=localhost:43780
+          - ADDR=1123.1456
+          - KEY=aaaaaaaaaaaaaaaaaaaa
 
 
 

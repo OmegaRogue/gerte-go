@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -28,14 +27,14 @@ func main() {
 		Patch: 0,
 	})
 
-	addr := gerte.GertAddress{
-		Upper: 1123,
-		Lower: 1456,
+	addr, err := gerte.AddressFromString(Address)
+	if err != nil {
+		log.Fatalf("error on parse address string: %+v", err)
 	}
-	b := string(addr.ToBytes()) + "aaaaaaaaaaaaaaaaaaaa"
-	ioutil.WriteFile("test/resolutions.geds", []byte(b), os.ModePerm)
+	// b := string(addr.ToBytes()) + "aaaaaaaaaaaaaaaaaaaa"
+	// ioutil.WriteFile("test/resolutions.geds", []byte(b), os.ModePerm)
 
-	con, err := net.Dial("tcp", "localhost:43780")
+	con, err := net.Dial("tcp", ServerAddress)
 	if err != nil {
 		log.Fatalf("error on tcp dial: %+v", err)
 	}
@@ -44,7 +43,7 @@ func main() {
 		log.Fatalf("error on startup: %+v", err)
 	}
 
-	register, err := api.Register(addr, "aaaaaaaaaaaaaaaaaaaa")
+	register, err := api.Register(addr, Key)
 	if err != nil {
 		log.Fatalf("error on register: %+v", err)
 	}
