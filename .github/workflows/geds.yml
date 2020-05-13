@@ -43,6 +43,9 @@ jobs:
     - name: Create Peers File
       run: touch test/GERT/GERTe/peers.geds
       
+    - name: List Files
+      run: ls -a test/GERT/GERTe/
+      
     - name: Start GEDS
       id: start-geds
       run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
