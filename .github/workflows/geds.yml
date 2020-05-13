@@ -47,10 +47,6 @@ jobs:
     - name: List Files
       run: ls -a test/GERT/GERTe/
 
-    - name: Wait / Sleep
-      uses: jakejarvis/wait-action@v0.1.0
-      with:
-        time: '30s'
     - uses: actions/cache@v1
       id: cache
       with:
@@ -81,10 +77,6 @@ jobs:
         with:
           path: test
           key: geds
-      - name: Wait / Sleep
-        uses: jakejarvis/wait-action@v0.1.0
-        with:
-          time: '30s'
 
 
       - name: Start GEDS
@@ -95,28 +87,19 @@ jobs:
       - name: List Files
         run: ls -a test/GERT/GERTe/
 
-      - name: Wait / Sleep
-        uses: jakejarvis/wait-action@v0.1.0
-        with:
-          time: '30s'
 
       - name: Run example
         id: run-example
         if: steps.cache.outputs.cache-hit == 'true'
         run: go run examples/basic/main.go
 
-      - name: Wait / Sleep
-        if: steps.start-geds.outcome == 'failure' || steps.run-example.outcome == 'failure'
-        uses: jakejarvis/wait-action@v0.1.0
-        with:
-          time: '30s'
 
       - name: Print Error Dump
         if: steps.run-example.outcome == 'failure'
-        run: cat /test/error.dump
+        run: cat /test/GERT/GERTe/error.dump
 
       - name: Print Error Log
         if: steps.run-example.outcome == 'failure'
-        run: cat /test/errors.log
+        run: cat /test/GERT/GERTe/errors.log
 
  
