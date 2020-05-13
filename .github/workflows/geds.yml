@@ -89,7 +89,8 @@ jobs:
 
       - name: Start GEDS
         if: steps.cache.outputs.cache-hit == 'true'
-        run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
+        run: GEDSv1.1d -a 0.0.0.0 -d &
+        working-directory: test/GERT/GERTe
 
       - name: List Files
         run: ls -a test/GERT/GERTe/
@@ -162,6 +163,7 @@ jobs:
 
       - name: Start GEDS
         run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
+        working-directory: test/GERT/GERTe
 
       - name: List Files
         run: ls -a test/GERT/GERTe
