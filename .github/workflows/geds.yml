@@ -29,11 +29,8 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-    - name: Github Hub
-      uses: elgohr/Github-Hub-Action@1.3
-      with:
-        # The command to execute on GitHub
-        command: clone https://github.com/GlobalEmpire/GERT 
+    - name: clone geds
+      run: git clone https://github.com/GlobalEmpire/GERT 
       
     - name: ls
       run: ls -a
