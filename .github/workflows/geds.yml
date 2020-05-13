@@ -174,11 +174,7 @@ jobs:
         id: run-example
         run: go run examples/basic/main.go
 
-      - name: Wait / Sleep
-        if: steps.run-example.outcome == 'failure'
-        uses: jakejarvis/wait-action@v0.1.0
-        with:
-          time: '30s'
+
 
       - name: Print Error Dump
         if: steps.run-example.outcome == 'failure'
