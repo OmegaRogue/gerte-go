@@ -48,11 +48,17 @@ jobs:
 
 
       - name: Start GEDS
-        run: test/GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
+        run: ./GEDSv1.1d -a 0.0.0.0 -d &
+        working-directory: test/GERT/GERTe
 
       - name: List Files
         run: ls -a test/GERT/GERTe
-      #
+
+      - name: Wait / Sleep
+        uses: jakejarvis/wait-action@v0.1.0
+        with:
+          time: '30s'
+
       - name: Run example
         id: run-example
         run: go run examples/basic/main.go
