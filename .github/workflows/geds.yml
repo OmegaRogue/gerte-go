@@ -57,6 +57,7 @@ jobs:
 
       - name: List Files
         run: ls -a test
+      - run: tree
 
       - name: Wait / Sleep
         uses: jakejarvis/wait-action@v0.1.0
@@ -76,10 +77,4 @@ jobs:
           KEY: aaaaaaaaaaaaaaaaaaaa
 
 
-      - name: Print Error Dump
-        #if: steps.run-example.outcome == 'failure'
-        run: cat /test/error.dump
 
-      - name: Print Error Log
-        #if: steps.run-example.outcome == 'failure'
-        run: cat /test/errors.log
