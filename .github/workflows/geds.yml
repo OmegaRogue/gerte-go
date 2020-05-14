@@ -36,23 +36,24 @@ jobs:
         run: make debug
         working-directory: test/GERT/GERTe
 
-      - name: Copy resolutions into GEDS directory
-        run: mv test/resolutions.geds test/GERT/GERTe
-
-      - name: Create Peers File
-        id: create-peers
-        run: mv test/peers.geds test/GERT/GERTe
+      - name: Create Resolutions
+        run: go run test/create_resolutions.go
+        env:
+          ADDR1: 1123.1456
+          ADDR2: 2345.1456
+          KEY1: aaaaaaaaaaaaaaaaaaaa
+          KEY2: aaaaaaaaaaaaaaaaaaaa
 
       - name: List Files
         run: ls -a test/GERT/GERTe
 
 
       - name: Start GEDS
-        run: ./GEDSv1.1d -a 0.0.0.0 -d &
-        working-directory: test/GERT/GERTe
+        run: ./GERT/GERTe/GEDSv1.1d -a 0.0.0.0 -d &
+        working-directory: test/
 
       - name: List Files
-        run: ls -a test/GERT/GERTe
+        run: ls -a test
 
       - name: Wait / Sleep
         uses: jakejarvis/wait-action@v0.1.0
@@ -65,6 +66,15 @@ jobs:
         env:
           SERVER_ADDR: localhost:43780
           ADDR: 1123.1456
+          TARGET_ADDR: 2345.1456
+          KEY: aaaaaaaaaaaaaaaaaaaa
+
+      - name: Run example2
+        id: run-example2
+        run: go run examples/basic/main.go
+        env:
+          SERVER_ADDR: localhost:43780
+          ADDR: 2345.1456
           KEY: aaaaaaaaaaaaaaaaaaaa
 
 

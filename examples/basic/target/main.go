@@ -4,7 +4,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 
 	"github.com/OmegaRogue/gerte-go"
 )
@@ -14,7 +13,7 @@ var Key string
 var ServerAddress string
 
 func init() {
-	Address = os.Getenv("ADDR")
+	Address = os.Getenv("TARGET_ADDR")
 	Key = os.Getenv("KEY")
 	ServerAddress = os.Getenv("SERVER_ADDR")
 }
@@ -31,6 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("error on parse address string: %+v", err)
 	}
+
 	// b := string(addr.ToBytes()) + "aaaaaaaaaaaaaaaaaaaa"
 	// ioutil.WriteFile("test/resolutions.geds", []byte(b), os.ModePerm)
 
@@ -49,38 +49,18 @@ func main() {
 	}
 	log.Printf("registered: %v", register)
 
-	targ := gerte.GERTc{
-		GERTe: addr,
-		GERTi: gerte.GertAddress{
-			Upper: 1,
-			Lower: 1,
-		},
-	}
-	pkt := gerte.Packet{
-		Source: targ,
-		Target: targ,
-		Data:   []byte("test"),
-	}
-	transmit, err := api.Transmit(pkt)
+	cmd, err := api.Parse()
 	if err != nil {
 		log.Fatalf("error on transmit: %+v", err)
 	}
-	log.Printf("transmitted: %v", transmit)
+	p, err := cmd.PrintCommand()
+	if err != nil {
+		log.Fatalf("error on print command: %+v", err)
+	}
+	log.Printf("received: %v", p)
 
 	err = api.Shutdown()
 	if err != nil {
 		log.Fatalf("error on shutdown: %+v", err)
 	}
-}
-
-func versionToBytes(ver gerte.Version) []byte {
-	return []byte{ver.Major, ver.Minor, ver.Patch}
-}
-
-func toBytes(addr gerte.GertAddress) []byte {
-	var b strings.Builder
-	b.WriteByte(byte(addr.Upper >> 4))
-	b.WriteByte(byte(((addr.Upper & 0x0F) << 4) | (addr.Lower >> 8)))
-	b.WriteByte(byte(addr.Lower & 0xFF))
-	return []byte(b.String())
 }
