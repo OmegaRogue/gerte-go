@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -41,10 +40,8 @@ func main() {
 }
 
 func Run(out chan []byte, err chan error, wg *sync.WaitGroup, cmd string) {
-
-	fmt.Println(os.Environ())
 	defer wg.Done()
-	cm := exec.Command("go", "run", "examples/basic/requester/main.go")
+	cm := exec.Command(cmd)
 	out1, err1 := cm.CombinedOutput()
 	out <- out1
 	err <- err1
