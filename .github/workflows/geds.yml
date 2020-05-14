@@ -66,8 +66,8 @@ jobs:
         run: go run examples/basic/parallel_starter/main.go
         env:
           PATH: /opt/hostedtoolcache/go/1.14.2/x64/bin/go
-          CMD1: go run examples/basic/main.go
-          CMD2: go run examples/basic/main.go
+          CMD1: go run examples/basic/requester/main.go
+          CMD2: go run examples/basic/target/main.go
           SERVER_ADDR: localhost:43780
           ADDR: 1123.1456
           TARGET_ADDR: 2345.1456
