@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 )
 
@@ -41,7 +42,8 @@ func main() {
 
 func Run(out chan []byte, err chan error, wg *sync.WaitGroup, cmd string) {
 	defer wg.Done()
-	cm := exec.Command(cmd)
+	fields := strings.Fields(cmd)
+	cm := exec.Command(fields[0], fields[1:]...)
 	out1, err1 := cm.CombinedOutput()
 	out <- out1
 	err <- err1
