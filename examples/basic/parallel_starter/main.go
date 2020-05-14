@@ -12,8 +12,8 @@ var Cmd1 string
 var Cmd2 string
 
 func init() {
-	Cmd1 = os.Getenv("CMD2")
-	Cmd2 = os.Getenv("CMD1")
+	Cmd1 = os.Getenv("CMD1")
+	Cmd2 = os.Getenv("CMD2")
 }
 
 func main() {

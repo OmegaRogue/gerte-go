@@ -19,6 +19,7 @@ jobs:
         id: go
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+        run: ls -a
 
       - name: Get dependencies
         run: |
@@ -59,6 +60,13 @@ jobs:
         uses: jakejarvis/wait-action@v0.1.0
         with:
           time: '10s'
+
+
+      - name: Run Basic Example
+        run: go run examples/parallel_starter/main.go
+        env:
+          CMD1:
+          CMD2:
 
       - name: Run example
         id: run-example
