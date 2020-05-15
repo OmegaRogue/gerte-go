@@ -40,7 +40,7 @@ jobs:
         working-directory: test/GERT/GERTe
 
       - name: Create Resolutions
-        run: go run test/create_resolutions.go
+        run: go run tools/create_resolutions/main.go
         env:
           ADDR1: 1123.1456
           ADDR2: 2345.1456
@@ -66,7 +66,7 @@ jobs:
 
 
       - name: Run Basic Example
-        run: go run examples/basic/parallel_starter/main.go
+        run: go run tools/parallel_starter/main.go
         env:
           PATH: /opt/hostedtoolcache/go/1.14.2/x64/bin/go
           CMD1: go run examples/basic/requester/main.go
