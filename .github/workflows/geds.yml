@@ -1,15 +1,15 @@
-name: GEDS
+name: Integration Tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ master develop ]
 
 jobs:
 
-  geds:
-    name: Test Against GEDS
+  integration-test:
+    name: Integration Testing
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.14.2
