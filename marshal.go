@@ -77,7 +77,7 @@ func (pkt Packet) ToBytes() ([]byte, error) {
 	return append(addressPart, dataPart...), nil
 }
 
-// PacketFromBytes parses bytes to a GERT Status
+// StatusFromBytes parses bytes to a GERT Status
 func StatusFromBytes(data []byte) (Status, error) {
 
 	switch data[0] {

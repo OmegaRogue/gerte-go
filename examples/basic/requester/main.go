@@ -8,16 +8,16 @@ import (
 	"github.com/OmegaRogue/gerte-go"
 )
 
-var Address string
-var TargetAddress string
-var Key string
-var ServerAddress string
+var address string
+var targetAddress string
+var key string
+var serverAddress string
 
 func init() {
-	Address = os.Getenv("ADDR")
-	TargetAddress = os.Getenv("TARGET_ADDR")
-	Key = os.Getenv("KEY")
-	ServerAddress = os.Getenv("SERVER_ADDR")
+	address = os.Getenv("ADDR")
+	targetAddress = os.Getenv("TARGET_ADDR")
+	key = os.Getenv("KEY")
+	serverAddress = os.Getenv("SERVER_ADDR")
 }
 
 func main() {
@@ -28,11 +28,11 @@ func main() {
 		Patch: 0,
 	})
 
-	addr, err := gerte.AddressFromString(Address)
+	addr, err := gerte.AddressFromString(address)
 	if err != nil {
 		log.Fatalf("error on parse address string: %+v", err)
 	}
-	target, err := gerte.AddressFromString(TargetAddress)
+	target, err := gerte.AddressFromString(targetAddress)
 	if err != nil {
 		log.Fatalf("error on parse target address string: %+v", err)
 	}
@@ -40,7 +40,7 @@ func main() {
 	// b := string(addr.ToBytes()) + "aaaaaaaaaaaaaaaaaaaa"
 	// ioutil.WriteFile("test/resolutions.geds", []byte(b), os.ModePerm)
 
-	con, err := net.Dial("tcp", ServerAddress)
+	con, err := net.Dial("tcp", serverAddress)
 	if err != nil {
 		log.Fatalf("error on tcp dial: %+v", err)
 	}
@@ -49,7 +49,7 @@ func main() {
 		log.Fatalf("error on startup: %+v", err)
 	}
 
-	register, err := api.Register(addr, Key)
+	register, err := api.Register(addr, key)
 	if err != nil {
 		log.Fatalf("error on register: %+v", err)
 	}

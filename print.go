@@ -14,26 +14,11 @@ func (cmd Command) PrintCommand() (string, error) {
 		switch cmd.Status.Status {
 		case StateFailure:
 			output += "[FAILURE]"
-			switch cmd.Status.Error {
-			case ErrorVersion:
-				output += "[VERSION]"
-				break
-			case ErrorBadKey:
-				output += "[BAD_KEY]"
-				break
-			case ErrorAlreadyRegistered:
-				output += "[ALREADY_REGISTERED]"
-				break
-			case ErrorNotRegistered:
-				output += "[NOT_REGISTERED]"
-				break
-			case ErrorNoRoute:
-				output += "[NO_ROUTE]"
-				break
-			case ErrorAddressTaken:
-				output += "[ADDRESS_TAKEN]"
-				break
+			p, err := cmd.Status.Error.PrintError()
+			if err != nil {
+				return "", fmt.Errorf("error on print command: %w", err)
 			}
+			output += p
 			break
 		case StateConnected:
 			output += "[CONNECTED]"
@@ -77,6 +62,8 @@ func (addr GertAddress) PrintAddress() string {
 func (addr GERTc) PrintGERTc() string {
 	return fmt.Sprintf("%04v.%04v:%04v.%04v", addr.GERTe.Upper, addr.GERTe.Lower, addr.GERTi.Upper, addr.GERTi.Lower)
 }
+
+// PrintError prints a GERT Error to a Human-readable string
 func (error GertError) PrintError() (string, error) {
 	switch error {
 	case ErrorVersion:
