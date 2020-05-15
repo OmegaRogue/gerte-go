@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-// TODO Make Doc
+// ToBytes converts a GERT Version to bytes for sending
 func (ver Version) ToBytes() []byte {
 	return []byte{ver.Major, ver.Minor}
 }
 
-// TODO Make Doc
+// VersionFromBytes parses bytes to a GERT Version
 func VersionFromBytes(b []byte) Version {
 	return Version{
 		Major: b[0],
@@ -18,7 +18,7 @@ func VersionFromBytes(b []byte) Version {
 	}
 }
 
-// TODO Make Doc
+// ToBytes converts a GERT Address to bytes for sending
 func (addr GertAddress) ToBytes() []byte {
 	var b strings.Builder
 	b.WriteByte(byte(addr.Upper >> 4))
@@ -27,7 +27,7 @@ func (addr GertAddress) ToBytes() []byte {
 	return []byte(b.String())
 }
 
-// TODO Make Doc
+// AddressFromBytes parses bytes to a GERT Address
 func AddressFromBytes(data []byte) GertAddress {
 	return GertAddress{
 		Upper: (int(data[0]) << 4) | (int(data[1]) >> 4),
@@ -35,7 +35,7 @@ func AddressFromBytes(data []byte) GertAddress {
 	}
 }
 
-// TODO Make Doc
+// GertCFromBytes parses bytes to a GERTc Address
 func GertCFromBytes(data []byte) GERTc {
 	return GERTc{
 		GERTe: GertAddress{
@@ -50,12 +50,12 @@ func GertCFromBytes(data []byte) GERTc {
 
 }
 
-// TODO Make Doc
+// ToBytes converts a GERTc to bytes for sending
 func (addr GERTc) ToBytes() []byte {
 	return append(addr.GERTe.ToBytes(), addr.GERTi.ToBytes()...)
 }
 
-// TODO Make Doc
+// PacketFromBytes parses bytes to a GERT Packet
 func PacketFromBytes(data []byte) (Packet, error) {
 	source := GertCFromBytes(data[:6])
 	target := GertCFromBytes(data[6:12])
@@ -67,7 +67,7 @@ func PacketFromBytes(data []byte) (Packet, error) {
 	}, nil
 }
 
-// TODO Make Doc
+// ToBytes converts a Packet to bytes for sending
 func (pkt Packet) ToBytes() ([]byte, error) {
 	if len(pkt.Data) > 255 {
 		return nil, fmt.Errorf("data cannot exceed 255 bytes")
@@ -77,7 +77,7 @@ func (pkt Packet) ToBytes() ([]byte, error) {
 	return append(addressPart, dataPart...), nil
 }
 
-// TODO Make Doc
+// PacketFromBytes parses bytes to a GERT Status
 func StatusFromBytes(data []byte) (Status, error) {
 
 	switch data[0] {
@@ -118,7 +118,7 @@ func StatusFromBytes(data []byte) (Status, error) {
 	return Status{}, fmt.Errorf("state didn't match any known state: %v", data[0])
 }
 
-// TODO Make Doc
+// CommandFromBytes parses bytes to a GERT Command
 func CommandFromBytes(data []byte) (Command, error) {
 	switch data[0] {
 	case byte(CommandState):

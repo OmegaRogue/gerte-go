@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// TODO Make Doc
+// PrintCommand prints a GERT Command to a Human-readable string
 func (cmd Command) PrintCommand() (string, error) {
 	output := ""
 	switch cmd.Command {
@@ -63,7 +63,7 @@ func (cmd Command) PrintCommand() (string, error) {
 	return output, nil
 }
 
-// TODO Make Doc
+// PrintVersion prints a GERT Version to a Human-readable string
 func (ver Version) PrintVersion() string {
 	return fmt.Sprintf("%v.%v.%v", ver.Major, ver.Minor, ver.Patch)
 }
@@ -95,7 +95,7 @@ func (error GertError) PrintError() (string, error) {
 	return "", fmt.Errorf("invalid Failure")
 }
 
-// TODO Make Doc
+// PrintStatus prints a GERT Status to a Human-readable string
 func (status Status) PrintStatus() (string, error) {
 	switch status.Status {
 	case StateFailure:
@@ -116,14 +116,14 @@ func (status Status) PrintStatus() (string, error) {
 	return "", fmt.Errorf("invalid status")
 }
 
-// TODO Make Doc
+// PrintPacket prints a GERT Packet to a Human-readable string
 func (pkt Packet) PrintPacket() string {
 
 	fmt.Println(string(pkt.Data))
 	return fmt.Sprintf("[%v][%v][%v][%v]", pkt.Source.PrintGERTc(), pkt.Target.PrintGERTc(), len(pkt.Data), strings.Trim(string(pkt.Data), " "))
 }
 
-// TODO Make Doc
+// PrettyPrint prints a GERT Message into a human readable string
 func PrettyPrint(data []byte) (string, error) {
 	output := ""
 	switch data[0] {
