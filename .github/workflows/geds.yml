@@ -1,4 +1,4 @@
-name: GEDS
+name: Integration Tests
 
 on:
   push:
