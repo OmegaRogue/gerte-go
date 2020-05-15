@@ -27,7 +27,7 @@ func StartupSuccessful(t *testing.T) {
 			t.Errorf("server errored on read: %+v", err)
 		}
 
-		t.Logf("server received: %v", VersionFromBytes(dat).PrintVersion())
+		t.Logf("server received: %v", VersionFromBytes(dat))
 
 		cmd := []byte{byte(CommandState), byte(StateConnected)}
 		verByte := Version{
@@ -82,7 +82,7 @@ func StartupUnsuccessful(t *testing.T) {
 			t.Errorf("server errored on read: %+v", err)
 		}
 
-		t.Logf("server received: %v", VersionFromBytes(dat).PrintVersion())
+		t.Logf("server received: %v", VersionFromBytes(dat))
 
 		cmd := []byte{byte(CommandState), byte(StateFailure), byte(ErrorVersion)}
 		p, err := PrettyPrint(cmd)
@@ -136,7 +136,7 @@ func StartupSent(t *testing.T) {
 			t.Errorf("server errored on read: %+v", err)
 		}
 
-		t.Logf("server received: %v", VersionFromBytes(dat).PrintVersion())
+		t.Logf("server received: %v", VersionFromBytes(dat))
 
 		cmd := []byte{byte(CommandState), byte(StateSent)}
 		p, err := PrettyPrint(cmd)
@@ -190,7 +190,7 @@ func StartupAssigned(t *testing.T) {
 			t.Errorf("server errored on read: %+v", err)
 		}
 
-		t.Logf("server received: %v", VersionFromBytes(dat).PrintVersion())
+		t.Logf("server received: %v", VersionFromBytes(dat))
 
 		cmd := []byte{byte(CommandState), byte(StateAssigned)}
 		p, err := PrettyPrint(cmd)
@@ -244,7 +244,7 @@ func StartupInvalidCmd(t *testing.T) {
 			t.Errorf("server errored on read: %+v", err)
 		}
 
-		t.Logf("server received: %v", VersionFromBytes(dat).PrintVersion())
+		t.Logf("server received: %v", VersionFromBytes(dat))
 
 		cmd := []byte(string([]byte{byte(CommandRegister)}) +
 			string(GertAddress{Upper: 0, Lower: 0}.ToBytes()) +
@@ -760,11 +760,8 @@ func TestApi_Parse(t *testing.T) {
 	if err != nil {
 		t.Errorf("client errored on parse response: %+v", err)
 	}
-	p, err := cmd.PrintCommand()
-	if err != nil {
-		t.Errorf("client errored on print command: %+v", err)
-	}
-	t.Logf("client received: %v", p)
+
+	t.Logf("client received: %#v", cmd)
 	err = api.socket.Close()
 	if err != nil {
 		t.Errorf("client errored on close socket: %+v", err)

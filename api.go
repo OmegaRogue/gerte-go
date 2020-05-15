@@ -8,74 +8,6 @@ import (
 	"strings"
 )
 
-const (
-	// CommandState is used by relays to indicate result of a command to a gateway and by gateways to request the state.
-	CommandState GertCommand = 0
-	// CommandRegister claims an address for this gateway using a key.
-	CommandRegister GertCommand = 1
-	// CommandData transmits data from a GERTi address to a GERTc address.
-	CommandData GertCommand = 2
-	// CommandClose gracefully closes a connection to a relay.
-	CommandClose GertCommand = 3
-
-	// StateFailure is the initial gateway state.
-	// Should be changed upon negotiation.
-	// Also a response to failed commands with an error
-	StateFailure GertStatus = 0
-	// StateConnected indicates that the Gateway is connected to a relay, no other action has been taken
-	StateConnected GertStatus = 1
-	// StateAssigned indicates that the Gateway has successfully claimed an address.
-	// Used as a response to the REGISTER command.
-	StateAssigned GertStatus = 2
-	// StateClosed indicates that the Gateway has closed the connection.
-	// Used as a response to the CLOSE command.
-	StateClosed GertStatus = 3
-	// StateSent indicates that the Data has been successfully sent.
-	// Used as a response to the DATA command.
-	// This is not a guarantee for data that has to be sent to another peer, although it's unlikely to be incorrect.
-	StateSent GertStatus = 4
-
-	// ErrorVersion indicates that an incompatible version was used during negotiation.
-	ErrorVersion GertError = 0
-	// ErrorBadKey indicates that the Key did not match that used for the requested address.
-	// Requested address may not exist
-	ErrorBadKey GertError = 1
-	// ErrorAlreadyRegistered indicates that Registration has already been performed successfully
-	ErrorAlreadyRegistered GertError = 2
-	// ErrorNotRegistered indicates that the Gateway hasn't been registered yet.
-	// The gateway cannot send data before claiming an address
-	ErrorNotRegistered GertError = 3
-	// ErrorNoRoute indicates that Data failed to send because the remote gateway couldn't be found
-	ErrorNoRoute GertError = 4
-	// ErrorAddressTaken indicates that the Address request has already been claimed
-	ErrorAddressTaken GertError = 5
-)
-
-type (
-	// GertStatus indicates the Status from a Status Command
-	GertStatus byte
-
-	// GertCommand indicates the Command of a Request
-	GertCommand byte
-
-	// GertError is the Error Code in a "Failed" Status
-	GertError byte
-)
-
-type (
-	// GertAddress is a 3 byte address used as a GERTe/i Address
-	GertAddress struct {
-		Upper int
-		Lower int
-	}
-
-	// GERTc is a 6 byte GERTc Address
-	GERTc struct {
-		GERTe GertAddress
-		GERTi GertAddress
-	}
-)
-
 // Api is used to perform GERTe API Operations
 type Api struct {
 	socket     net.Conn
@@ -84,37 +16,6 @@ type Api struct {
 	Address    GertAddress
 	Version    Version
 }
-
-type (
-	// Command is the Parsed Data returned from Api.Parse
-	Command struct {
-		Command GertCommand
-		Packet  Packet
-		Status  Status
-	}
-
-	// Packet is the Parsed Data returned from Api.Parse for a Data Command
-	Packet struct {
-		Source GERTc
-		Target GERTc
-		Data   []byte
-	}
-
-	// Status is the Parsed Status returned from Api.Parse for a Status Command
-	Status struct {
-		Status  GertStatus
-		Size    byte
-		Error   GertError
-		Version Version
-	}
-
-	// Version is the Version used by the Connected Status
-	Version struct {
-		Major byte
-		Minor byte
-		Patch byte
-	}
-)
 
 // NewApi is the constructor for Api, it assigns the Version
 func NewApi(ver Version) *Api {
@@ -161,8 +62,7 @@ func (api *Api) Startup(c net.Conn) error {
 		}
 
 	}
-	cm, _ := cmd.PrintCommand()
-	return fmt.Errorf("invalid response: %v", cm)
+	return fmt.Errorf("invalid response: %v", cmd)
 }
 
 // Register registers the GERTe client on the GERTe address with the associated 20 byte key.
@@ -191,8 +91,7 @@ func (api *Api) Register(addr GertAddress, key string) (bool, error) {
 			return true, nil
 		}
 	}
-	c, _ := cmd.PrintCommand()
-	return false, fmt.Errorf("no valid response: %v", c)
+	return false, fmt.Errorf("no valid response: %v", cmd)
 }
 
 // Transmit sends data to the target Address.
@@ -237,11 +136,7 @@ func (api *Api) Transmit(pkt Packet) (bool, error) {
 		}
 
 	}
-	p, err := cmd.PrintCommand()
-	if err != nil {
-		return false, fmt.Errorf("error on print command: %w", err)
-	}
-	return false, fmt.Errorf("no valid response: %v", p)
+	return false, fmt.Errorf("no valid response: %v", cmd)
 }
 
 // Shutdown Gracefully closes the GERTe Socket.
