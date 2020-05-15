@@ -2,9 +2,14 @@ name: Integration Tests
 
 on:
   push:
-    branches: [ master develop ]
+    branches:
+      - master
+    tags:
+      - v*
   pull_request:
-    branches: [ master develop ]
+    branches:
+      - master
+
 
 jobs:
 
