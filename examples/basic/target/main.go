@@ -53,11 +53,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("error on transmit: %+v", err)
 	}
-	p, err := cmd.PrintCommand()
-	if err != nil {
-		log.Fatalf("error on print command: %+v", err)
-	}
-	log.Printf("received: %v", p)
+	log.Printf("received: %v", cmd)
 
 	err = api.Shutdown()
 	if err != nil {
